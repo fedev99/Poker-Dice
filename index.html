@@ -1,0 +1,1547 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#060709">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <link rel="manifest" href="manifest.json">
+  <title>Poker Dice Online</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Google Fonts: Inter & Outfit -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@600;800;900&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <!-- Supabase Client JS SDK -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: #060709;
+      color: #e5e7eb;
+      user-select: none;
+      -webkit-user-select: none;
+      -webkit-tap-highlight-color: transparent;
+      padding-top: env(safe-area-inset-top);
+      padding-bottom: env(safe-area-inset-bottom);
+    }
+    .font-display { font-family: 'Outfit', sans-serif; }
+
+    /* Banner per assenza di connessione */
+    .offline-banner {
+      background-color: #ef4444;
+      color: white;
+      text-align: center;
+      font-size: 0.75rem;
+      font-weight: bold;
+      padding: 0.25rem;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 1000;
+      transition: all 0.3s ease;
+    }
+
+    /* 3D Dice Perspective and Minimal Poker Cube Styles */
+    .dice-scene {
+      perspective: 700px;
+      width: 68px;
+      height: 68px;
+    }
+    @media (min-width: 640px) {
+      .dice-scene { width: 84px; height: 84px; }
+    }
+
+    .cube {
+      width: 100%;
+      height: 100%;
+      position: relative;
+      transform-style: preserve-3d;
+      transition: transform 0.8s cubic-bezier(0.2, 0.85, 0.35, 1.2), box-shadow 0.25s ease;
+      cursor: pointer;
+    }
+
+    .cube-face {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(135deg, #181920 0%, #0e0f13 100%);
+      border: 2px solid rgba(234, 179, 8, 0.3);
+      border-radius: 16px;
+      box-shadow: inset 0 2px 6px rgba(255,255,255,0.08), 0 6px 16px rgba(0,0,0,0.8);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Outfit', sans-serif;
+      font-weight: 900;
+      font-size: 1.8rem;
+      color: #fbbf24;
+      backface-visibility: hidden;
+    }
+    @media (min-width: 640px) {
+      .cube-face { font-size: 2.3rem; border-radius: 18px; }
+    }
+
+    /* Facce corrette: 1=9, 2=10, 3=J, 4=Q, 5=K, 6=A */
+    .cube-face.f9 { transform: rotateY(0deg) translateZ(34px); color: #94a3b8; border-color: rgba(148, 163, 184, 0.3); }
+    .cube-face.f10 { transform: rotateY(90deg) translateZ(34px); color: #38bdf8; border-color: rgba(56, 189, 248, 0.3); }
+    .cube-face.fj { transform: rotateY(180deg) translateZ(34px); color: #34d399; border-color: rgba(52, 211, 153, 0.3); }
+    .cube-face.fq { transform: rotateY(-90deg) translateZ(34px); color: #f472b6; border-color: rgba(244, 114, 182, 0.3); }
+    .cube-face.fk { transform: rotateX(90deg) translateZ(34px); color: #fb923c; border-color: rgba(251, 146, 60, 0.3); }
+    .cube-face.fa { transform: rotateX(-90deg) translateZ(34px); color: #ef4444; border-color: rgba(239, 68, 68, 0.4); }
+
+    @media (min-width: 640px) {
+      .cube-face.f9 { transform: rotateY(0deg) translateZ(42px); }
+      .cube-face.f10 { transform: rotateY(90deg) translateZ(42px); }
+      .cube-face.fj { transform: rotateY(180deg) translateZ(42px); }
+      .cube-face.fq { transform: rotateY(-90deg) translateZ(42px); }
+      .cube-face.fk { transform: rotateX(90deg) translateZ(42px); }
+      .cube-face.fa { transform: rotateX(-90deg) translateZ(42px); }
+    }
+
+    .dice-container.selected .cube-face {
+      border-color: #ffd700;
+      box-shadow: 0 0 20px rgba(255, 215, 0, 0.7), inset 0 0 10px rgba(255, 215, 0, 0.4);
+      background: linear-gradient(135deg, #252210 0%, #121008 100%);
+    }
+    .dice-container.selected { transform: translateY(-8px); }
+
+    .dice-container.banked {
+      opacity: 0.45;
+      filter: grayscale(0.5);
+      cursor: not-allowed;
+    }
+
+    @keyframes tumble {
+      0% { transform: rotateX(0deg) rotateY(0deg) rotateZ(0deg); }
+      50% { transform: rotateX(720deg) rotateY(540deg) rotateZ(180deg); }
+      100% { transform: rotateX(1080deg) rotateY(1080deg) rotateZ(360deg); }
+    }
+    .is-rolling { animation: tumble 0.7s infinite linear; }
+
+    .felt-table {
+      background: radial-gradient(ellipse at center, #13171e 0%, #0a0c10 75%, #050608 100%);
+      box-shadow: inset 0 0 60px rgba(0, 0, 0, 0.95), 0 10px 25px rgba(0, 0, 0, 0.8);
+      border: 1px solid rgba(234, 179, 8, 0.15);
+    }
+    .glow-gold { box-shadow: 0 0 25px rgba(234, 179, 8, 0.25); }
+    
+    @keyframes toastFadeInOut {
+      0% { opacity: 0; transform: translate(-50%, -20px) scale(0.9); }
+      15% { opacity: 1; transform: translate(-50%, 0) scale(1); }
+      85% { opacity: 1; transform: translate(-50%, 0) scale(1); }
+      100% { opacity: 0; transform: translate(-50%, -20px) scale(0.9); }
+    }
+    .toast-animate {
+      animation: toastFadeInOut 2.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col justify-between overflow-x-hidden p-2 sm:p-4">
+
+  <!-- BANNER CONNESSIONE -->
+  <div id="offlineNotice" class="offline-banner hidden">
+    ⚠️ Connessione debole o assente. Salvataggio in background...
+  </div>
+
+  <!-- POP-UP NOTIFICA -->
+  <div id="quickToast" class="fixed top-5 left-1/2 -translate-x-1/2 z-[100] hidden pointer-events-none">
+    <div id="toastContent" class="px-4 py-2.5 rounded-2xl bg-zinc-900/95 border text-xs sm:text-sm font-bold shadow-2xl backdrop-blur-md flex items-center gap-2.5">
+      <span id="toastIcon">🃏</span>
+      <span id="toastMessage" class="text-white"></span>
+    </div>
+  </div>
+
+  <!-- MODALE LOBBY STANZA ONLINE -->
+  <div id="roomModal" class="fixed inset-0 bg-zinc-950/95 backdrop-blur-md z-50 flex items-center justify-center p-4">
+    <div class="bg-zinc-900 border border-zinc-700 rounded-3xl p-6 max-w-sm w-full shadow-2xl text-center">
+      <div class="w-14 h-14 mx-auto mb-3 rounded-2xl bg-gradient-to-br from-amber-400 to-yellow-600 flex items-center justify-center shadow-lg shadow-amber-500/25 text-zinc-950 font-black text-2xl font-display">♠</div>
+      <h2 class="text-xl font-black text-white font-display mb-1">POKER DICE ONLINE</h2>
+      <p class="text-xs text-zinc-400 mb-5">Inserisci il tuo nome e il codice del tavolo per giocare</p>
+      
+      <div class="space-y-3 text-left">
+        <div>
+          <label class="text-[10px] uppercase font-bold text-zinc-400 block mb-1">Il tuo Nome</label>
+          <input id="inputPlayerName" type="text" maxlength="12" placeholder="Es. Maverick" class="w-full bg-zinc-950 border border-zinc-700 rounded-xl px-3 py-2 text-white font-semibold text-sm focus:outline-none focus:border-amber-400" />
+        </div>
+        <div>
+          <label class="text-[10px] uppercase font-bold text-zinc-400 block mb-1">Codice Tavolo</label>
+          <input id="inputRoomCode" type="text" placeholder="Es. pokerroom1" class="w-full bg-zinc-950 border border-zinc-700 rounded-xl px-3 py-2 text-white font-semibold text-sm focus:outline-none focus:border-amber-400" />
+        </div>
+        <div id="containerTargetScore">
+          <label class="text-[10px] uppercase font-bold text-amber-400 block mb-1">Punteggio Obiettivo Partita</label>
+          <input id="inputTargetScore" type="number" step="500" min="1000" value="5000" placeholder="Es. 5000" class="w-full bg-zinc-950 border border-amber-500/60 rounded-xl px-3 py-2 text-amber-300 font-semibold text-sm focus:outline-none focus:border-amber-400" />
+        </div>
+      </div>
+
+      <button id="btnJoinRoom" class="w-full mt-5 py-3.5 rounded-xl bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-400 hover:to-yellow-400 text-zinc-950 font-black text-sm font-display shadow-lg shadow-amber-500/25 active:scale-95 transition">Entra nel Tavolo</button>
+    </div>
+  </div>
+
+  <!-- MODALE MODIFICA GIOCATORI ATTUALI -->
+  <div id="editPlayersModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-zinc-900 border border-zinc-700 rounded-2xl p-5 max-w-sm w-full text-center">
+      <div class="flex items-center gap-2 mb-2 text-blue-400 justify-center">
+        <i data-lucide="users" class="w-5 h-5"></i>
+        <h3 class="text-base font-bold text-blue-300 font-display">Modifica Giocatori</h3>
+      </div>
+      <p class="text-xs text-zinc-400 mb-4">Scegli chi partecipa a questo tavolo:</p>
+      <div id="editPlayerSelectList" class="space-y-2 text-left mb-4 max-h-48 overflow-y-auto"></div>
+      
+      <div class="flex gap-2 mb-3">
+        <button id="btnCancelEditPlayers" class="flex-1 py-2.5 rounded-xl bg-zinc-800 text-zinc-300 font-bold text-xs">Annulla</button>
+        <button id="btnConfirmEditPlayers" class="flex-1 py-2.5 rounded-xl bg-blue-500 text-zinc-950 font-bold text-xs hover:bg-blue-400">Aggiorna</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODALE SELEZIONE GIOCATORI NUOVA MANO -->
+  <div id="newGameModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-zinc-900 border border-zinc-700 rounded-2xl p-5 max-w-sm w-full text-center">
+        <div class="flex items-center gap-2 mb-2 text-amber-400 justify-center">
+        <i data-lucide="rotate-ccw" class="w-5 h-5"></i>
+        <h3 class="text-base font-bold text-amber-300 font-display">Nuova Mano! Seleziona Giocatori</h3>
+      </div>
+      <p class="text-xs text-zinc-400 mb-4">Scegli chi parteciperà al nuovo round:</p>
+      <div id="playerSelectList" class="space-y-2 text-left mb-4 max-h-48 overflow-y-auto"></div>
+      
+      <div class="flex gap-2 mb-3">
+        <button id="btnCancelNewGame" class="flex-1 py-2.5 rounded-xl bg-zinc-800 text-zinc-300 font-bold text-xs">Annulla</button>
+        <button id="btnConfirmNewGame" class="flex-1 py-2.5 rounded-xl bg-amber-400 text-zinc-950 font-bold text-xs">Avvia</button>
+      </div>
+
+      <div class="border-t border-zinc-800 pt-3">
+        <button id="btnLeaveRoom" class="w-full py-2 rounded-xl bg-red-950/60 hover:bg-red-900/80 border border-red-800/80 text-red-300 font-bold text-xs flex items-center justify-center gap-1.5 transition">
+          <i data-lucide="log-out" class="w-3.5 h-3.5"></i>
+          <span>Esci dal Tavolo</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODALE PUNTEGGIO OBIETTIVO -->
+  <div id="targetScoreModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-zinc-900 border border-zinc-700 rounded-2xl p-5 max-w-xs w-full shadow-2xl">
+      <div class="flex items-center gap-2 mb-2 text-amber-400">
+        <i data-lucide="target" class="w-5 h-5"></i>
+        <h3 class="text-base font-bold text-amber-400 font-display">Punteggio Obiettivo</h3>
+      </div>
+      <p class="text-xs text-zinc-400 mb-3">Scegli o inserisci il punteggio necessario per vincere:</p>
+      
+      <div class="grid grid-cols-2 gap-2 mb-3">
+        <button type="button" class="preset-score-btn py-1.5 px-2 bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 rounded-xl text-xs font-bold text-amber-300 transition" data-value="2500">2.500 pt</button>
+        <button type="button" class="preset-score-btn py-1.5 px-2 bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 rounded-xl text-xs font-bold text-amber-300 transition" data-value="5000">5.000 pt</button>
+        <button type="button" class="preset-score-btn py-1.5 px-2 bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 rounded-xl text-xs font-bold text-amber-300 transition" data-value="10000">10.000 pt</button>
+        <button type="button" class="preset-score-btn py-1.5 px-2 bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 rounded-xl text-xs font-bold text-amber-300 transition" data-value="15000">15.000 pt</button>
+      </div>
+
+      <input id="targetScoreInput" type="number" min="1000" step="500" class="w-full bg-zinc-950 border border-zinc-700 rounded-xl px-3 py-2 text-white font-semibold text-sm focus:outline-none focus:border-amber-400 mb-4" placeholder="Valore personalizzato" />
+      <div class="flex gap-2">
+        <button id="btnCancelTargetScore" class="flex-1 py-2.5 rounded-xl bg-zinc-800 text-zinc-300 font-bold text-xs">Annulla</button>
+        <button id="btnSaveTargetScore" class="flex-1 py-2.5 rounded-xl bg-amber-500 text-zinc-950 font-bold text-xs">Conferma</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Header -->
+  <header class="w-full max-w-5xl mx-auto py-2 flex items-center justify-between border-b border-zinc-800/80">
+    <div class="flex items-center space-x-2.5">
+      <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-amber-400 to-yellow-600 flex items-center justify-center shadow-lg shadow-amber-500/25 text-zinc-950 font-black text-xl font-display">
+      ♠
+      </div>
+      <div>
+        <h1 class="text-lg sm:text-xl font-black tracking-wider text-white font-display flex items-center gap-1.5">
+          POKER DICE <button id="roomBadge" class="text-[10px] px-2 py-0.5 rounded-full bg-amber-600/20 text-amber-300 border border-amber-500/50 hover:bg-amber-500/30 transition">Tavolo: --</button>
+        </h1>
+      </div>
+    </div>
+
+    <!-- Actions -->
+    <div class="flex items-center gap-1.5 sm:gap-2">
+      <button id="btnSound" class="p-2 rounded-xl bg-zinc-900 border border-zinc-800 text-zinc-300">
+        <i data-lucide="volume-2" class="w-4 h-4"></i>
+      </button>
+
+      <button id="btnTargetScoreMobile" class="p-2 rounded-xl bg-zinc-900 border border-zinc-800 text-amber-400 sm:hidden flex items-center justify-center">
+        <i data-lucide="target" class="w-4 h-4"></i>
+      </button>
+
+      <button id="btnTargetScoreHeader" class="hidden sm:flex p-2 sm:px-3 sm:py-2 rounded-xl bg-zinc-900 border border-zinc-800 text-amber-400 text-xs font-semibold items-center gap-1">
+        <i data-lucide="target" class="w-4 h-4"></i>
+        <span id="targetScoreHeaderLabel" class="hidden sm:inline">5.000 pt</span>
+      </button>
+
+      <button id="btnLeaderboard" class="p-2 sm:px-3 sm:py-2 rounded-xl bg-zinc-900 border border-zinc-800 text-emerald-300 text-xs font-semibold flex items-center gap-1">
+        <i data-lucide="trophy" class="w-4 h-4"></i>
+        <span class="hidden sm:inline">Tabella Punteggi</span>
+      </button>
+
+      <button id="btnRules" class="p-2 sm:px-3 sm:py-2 rounded-xl bg-zinc-900 border border-zinc-800 text-purple-300 text-xs font-semibold flex items-center gap-1">
+        <i data-lucide="book-open" class="w-4 h-4"></i>
+        <span class="hidden sm:inline">Regole</span>
+      </button>
+
+      <button id="btnNewGame" class="p-2 sm:px-3 sm:py-2 rounded-xl bg-zinc-900 border border-amber-900/60 text-amber-300 text-xs font-semibold flex items-center gap-1">
+          <i data-lucide="rotate-ccw" class="w-4 h-4"></i>
+      </button>
+    </div>
+  </header>
+
+  <!-- Main Game Area -->
+  <main class="w-full max-w-5xl mx-auto flex-1 flex flex-col gap-3 sm:gap-5 justify-center py-2">
+
+    <!-- Players Cards Container -->
+    <div id="playersContainer" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2"></div>
+
+    <!-- Current Turn Status -->
+    <div class="p-3 sm:p-4 rounded-2xl bg-zinc-900/90 border border-amber-500/30 flex justify-between items-center relative overflow-hidden">
+      <div>
+        <span class="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider block">Punti Mano Selezionati</span>
+        <div class="text-2xl sm:text-3xl font-black text-amber-300 font-display flex items-center gap-1.5">
+          <span id="turnScoreTotal">0</span>
+          <span id="pendingSelectionBadge" class="text-xs font-normal text-emerald-400 hidden">(+0)</span>
+        </div>
+      </div>
+      <div class="text-right">
+        <span class="text-[10px] text-zinc-400 block">Lanci Disponibili</span>
+        <span class="text-xs sm:text-sm font-bold text-zinc-200" id="availableRollsCount">3 di 3</span>
+      </div>
+    </div>
+
+    <!-- Felt Table -->
+    <div class="felt-table rounded-3xl p-4 sm:p-8 relative overflow-hidden flex flex-col items-center justify-center min-h-[260px] sm:min-h-[310px]">
+      
+      <div class="absolute inset-0 pointer-events-none flex items-center justify-center opacity-5 select-none font-display font-black text-6xl sm:text-[10rem] tracking-widest text-white uppercase">
+        POKER DICE
+      </div>
+
+      <div id="statusPill" class="mb-3 sm:mb-5 px-3 py-1 rounded-full text-xs font-semibold bg-zinc-900/90 border border-zinc-700/60 text-zinc-300 flex items-center gap-2 shadow z-10">
+        <i data-lucide="dices" class="w-3.5 h-3.5 text-amber-400"></i>
+        <span id="statusMessage">Connettiti alla stanza...</span>
+      </div>
+
+      <!-- Dice Row (5 dadi poker: 9, 10, J, Q, K, A) -->
+      <div class="flex flex-wrap justify-center items-center gap-3 sm:gap-5 z-10 py-1">
+        <div class="dice-container transition-all duration-200" data-index="0">
+          <div class="dice-scene"><div class="cube" id="cube-0">
+            <div class="cube-face f9">9</div>
+            <div class="cube-face f10">10</div>
+            <div class="cube-face fj">J</div>
+            <div class="cube-face fq">Q</div>
+            <div class="cube-face fk">K</div>
+            <div class="cube-face fa">A</div>
+          </div></div><div class="dice-sub text-[9px] text-center font-bold text-zinc-500 mt-1 uppercase">Libero</div>
+        </div>
+        <div class="dice-container transition-all duration-200" data-index="1">
+          <div class="dice-scene"><div class="cube" id="cube-1">
+            <div class="cube-face f9">9</div>
+            <div class="cube-face f10">10</div>
+            <div class="cube-face fj">J</div>
+            <div class="cube-face fq">Q</div>
+            <div class="cube-face fk">K</div>
+            <div class="cube-face fa">A</div>
+          </div></div><div class="dice-sub text-[9px] text-center font-bold text-zinc-500 mt-1 uppercase">Libero</div>
+        </div>
+        <div class="dice-container transition-all duration-200" data-index="2">
+          <div class="dice-scene"><div class="cube" id="cube-2">
+            <div class="cube-face f9">9</div>
+            <div class="cube-face f10">10</div>
+            <div class="cube-face fj">J</div>
+            <div class="cube-face fq">Q</div>
+            <div class="cube-face fk">K</div>
+            <div class="cube-face fa">A</div>
+          </div></div><div class="dice-sub text-[9px] text-center font-bold text-zinc-500 mt-1 uppercase">Libero</div>
+        </div>
+        <div class="dice-container transition-all duration-200" data-index="3">
+          <div class="dice-scene"><div class="cube" id="cube-3">
+            <div class="cube-face f9">9</div>
+            <div class="cube-face f10">10</div>
+            <div class="cube-face fj">J</div>
+            <div class="cube-face fq">Q</div>
+            <div class="cube-face fk">K</div>
+            <div class="cube-face fa">A</div>
+          </div></div><div class="dice-sub text-[9px] text-center font-bold text-zinc-500 mt-1 uppercase">Libero</div>
+        </div>
+        <div class="dice-container transition-all duration-200" data-index="4">
+          <div class="dice-scene"><div class="cube" id="cube-4">
+            <div class="cube-face f9">9</div>
+            <div class="cube-face f10">10</div>
+            <div class="cube-face fj">J</div>
+            <div class="cube-face fq">Q</div>
+            <div class="cube-face fk">K</div>
+            <div class="cube-face fa">A</div>
+          </div></div><div class="dice-sub text-[9px] text-center font-bold text-zinc-500 mt-1 uppercase">Libero</div>
+        </div>
+      </div>
+
+      <div id="selectionPill" class="mt-3 text-xs font-semibold text-amber-300 min-h-[18px] text-center px-2 z-10">Seleziona i dadi per comporre la tua combinazione e registrare il punteggio</div>
+    </div>
+
+    <!-- Actions Buttons -->
+    <div id="actionButtons" class="flex gap-2">
+      <button id="btnRoll" class="flex-1 py-3.5 px-4 rounded-xl bg-gradient-to-r from-amber-500 to-yellow-500 text-zinc-950 font-black text-base font-display flex items-center justify-center gap-1.5 shadow-lg active:scale-95 transition">
+        <i data-lucide="play" class="w-4 h-4 fill-current"></i>
+        <span id="btnRollText">Lancia i Dadi</span>
+      </button>
+
+      <button id="btnBank" disabled class="flex-1 py-3.5 px-4 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-700 text-white font-black text-base font-display flex items-center justify-center gap-1.5 opacity-40 cursor-not-allowed transition">
+        <i data-lucide="shield-check" class="w-4 h-4"></i>
+        <span id="btnBankText">Registra Mano</span>
+      </button>
+    </div>
+
+    <!-- History Log -->
+    <div class="rounded-xl bg-zinc-900/70 border border-zinc-800 p-3">
+      <div class="flex items-center justify-between mb-1">
+        <span class="text-[10px] font-bold text-zinc-400 uppercase tracking-wider flex items-center gap-1">
+          <i data-lucide="history" class="w-3.5 h-3.5 text-amber-400"></i> Cronologia
+        </span>
+        <span class="text-[10px] text-zinc-500" id="roundCounter">Round 1</span>
+      </div>
+      <div id="logContainer" class="h-16 overflow-y-auto space-y-0.5 text-[11px] text-zinc-300 font-mono">
+        <p class="text-zinc-500 italic">Pronti al tavolo. Scegli i tuoi dadi!</p>
+      </div>
+    </div>
+
+    <!-- Chat di Gruppo Tavolo -->
+    <div class="rounded-xl bg-zinc-900/70 border border-zinc-800 p-3 flex flex-col gap-2">
+      <div class="flex items-center justify-between">
+        <span class="text-[10px] font-bold text-zinc-400 uppercase tracking-wider flex items-center gap-1">
+          <i data-lucide="message-square" class="w-3.5 h-3.5 text-amber-400"></i> Chat del Tavolo
+        </span>
+      </div>
+      <div id="chatLogContainer" class="h-24 overflow-y-auto space-y-1 text-xs text-zinc-300 bg-zinc-950/50 p-2 rounded-lg border border-zinc-800/60 font-sans">
+        <p class="text-zinc-500 italic text-[11px]">Chat attiva. Scrivi un messaggio ai giocatori!</p>
+      </div>
+      <form id="chatForm" class="flex gap-1.5">
+        <input id="chatInput" type="text" maxlength="150" placeholder="Scrivi un messaggio..." class="flex-1 bg-zinc-950 border border-zinc-700/80 rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none focus:border-amber-400" />
+        <button type="submit" class="px-3 py-1.5 bg-amber-600 hover:bg-amber-500 text-zinc-950 font-bold rounded-xl text-xs flex items-center justify-center gap-1 transition">
+          <i data-lucide="send" class="w-3.5 h-3.5"></i>
+          <span class="hidden sm:inline">Invia</span>
+        </button>
+      </form>
+    </div>
+  </main>
+
+  <!-- FOOTER -->
+  <footer class="w-full text-center py-3 border-t border-zinc-900 text-zinc-500 text-xs font-medium tracking-wide">
+    Poker Dice Online • Scegli la tua combinazione[span_1](start_span)[span_1](end_span)
+  </footer>
+
+  <!-- WIN MODAL -->
+  <div id="winModal" class="fixed inset-0 bg-black/85 backdrop-blur-md z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-gradient-to-b from-amber-950 via-zinc-950 to-black border-2 border-amber-500 rounded-3xl p-6 max-w-sm w-full text-center glow-gold max-h-[85vh] flex flex-col">
+      <div class="w-14 h-14 mx-auto mb-2 rounded-full bg-amber-500/20 border border-amber-400 flex items-center justify-center text-amber-400">
+        <i data-lucide="trophy" class="w-7 h-7"></i>
+      </div>
+      <h2 class="text-xl font-black text-amber-400 font-display" id="winnerTitle">VITTORIA!</h2>
+      <p class="text-xs text-zinc-300 my-1" id="winnerSubtitle">Vittoria al tavolo!</p>
+      
+      <div class="mt-3 text-left">
+        <span class="text-[10px] font-bold text-zinc-400 uppercase tracking-wider block mb-1">Tabella Punteggi Finale</span>
+        <div id="winLeaderboardContainer" class="space-y-1.5 max-h-36 overflow-y-auto mb-3"></div>
+      </div>
+
+      <button id="btnRestartWin" class="w-full py-3 rounded-xl bg-amber-500 text-zinc-950 font-bold text-sm mt-auto">Nuova Partita</button>
+    </div>
+  </div>
+
+  <!-- RULES MODAL -->
+  <div id="rulesModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-zinc-900 border border-zinc-700 rounded-2xl p-5 max-w-md w-full max-h-[80vh] flex flex-col">
+      <div class="flex items-center justify-between pb-2 border-b border-zinc-800">
+        <div class="flex items-center gap-2">
+          <i data-lucide="book-open" class="w-5 h-5 text-purple-300"></i>
+          <h3 class="text-base font-bold text-purple-300 font-display">Regole Poker Dice</h3>
+        </div>
+        <button id="btnCloseRules" class="text-zinc-400 hover:text-white"><i data-lucide="x" class="w-5 h-5"></i></button>
+      </div>
+      <div class="overflow-y-auto space-y-3 py-3 text-xs text-zinc-300">
+        <p>• <strong>Dadi:</strong> 5 dadi con i simboli: Asso (A), Re (K), Donna (Q), Fante (J), 10 e 9[span_2](start_span)[span_2](end_span).</p>
+        <p>• <strong>Svolgimento:</strong> Fino a 3 lanci per turno. Scegli tu quali dadi bloccare cliccandoci sopra e quali rilanciare per comporre la tua mano[span_3](start_span)[span_3](end_span).</p>
+        <p>• <strong>Gerarchia e Punteggi delle Mani:</strong></p>
+        <p class="pl-2">1. <strong>Cinque di un tipo</strong> (Five of a Kind) - <strong>500 pt</strong>[span_4](start_span)[span_4](end_span)</p>
+        <p class="pl-2">2. <strong>Quattro di un tipo / Poker</strong> (Four of a Kind) - <strong>350 pt</strong>[span_5](start_span)[span_5](end_span)</p>
+        <p class="pl-2">3. <strong>Full</strong> (Full House - Tris e Coppia) - <strong>250 pt</strong>[span_6](start_span)[span_6](end_span)</p>
+        <p class="pl-2">4. <strong>Scala</strong> (Straight - 9-10-J-Q-K o 10-J-Q-K-A) - <strong>200 pt</strong>[span_7](start_span)[span_7](end_span)</p>
+        <p class="pl-2">5. <strong>Tris</strong> (Three of a Kind) - <strong>150 pt</strong>[span_8](start_span)[span_8](end_span)</p>
+        <p class="pl-2">6. <strong>Doppia Coppia</strong> (Two Pair) - <strong>100 pt</strong>[span_9](start_span)[span_9](end_span)</p>
+        <p class="pl-2">7. <strong>Coppia</strong> (One Pair) - <strong>50 pt</strong>[span_10](start_span)[span_10](end_span)</p>
+        <p class="pl-2">8. <strong>Carta alta / Nulla</strong> (Bust) - <strong>10 pt</strong>[span_11](start_span)[span_11](end_span)</p>
+      </div>
+      <button id="btnGotItRules" class="w-full py-2.5 rounded-xl bg-purple-300 text-zinc-950 font-bold text-xs mt-2">Chiudi</button>
+    </div>
+  </div>
+
+  <!-- LEADERBOARD MODAL -->
+  <div id="leaderboardModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-zinc-900 border border-zinc-700 rounded-2xl p-5 max-w-sm w-full">
+      <div class="flex items-center justify-between pb-2 border-b border-zinc-800 mb-3">
+        <div class="flex items-center gap-2">
+          <i data-lucide="trophy" class="w-5 h-5 text-emerald-300"></i>
+          <div>
+            <h3 class="text-base font-bold text-emerald-300 font-display">Tabella Punteggi Tavolo</h3>
+            <p id="leaderboardTargetLabel" class="text-[10px] text-amber-400 font-semibold"></p>
+          </div>
+        </div>
+        <button id="btnCloseLeaderboard"><i data-lucide="x" class="w-5 h-5"></i></button>
+      </div>
+      <div id="leaderboardContainer" class="space-y-2"></div>
+    </div>
+  </div>
+
+  <script>
+    // -------------------------------------------------------------
+    // GESTIONE COOKIE & PERSISTENZA UTENTE
+    // -------------------------------------------------------------
+    function setCookie(name, value, days = 30) {
+      const d = new Date();
+      d.setTime(d.getTime() + (days * 24 * 60 * 60 * 1000));
+      const expires = "expires=" + d.toUTCString();
+      document.cookie = `${name}=${encodeURIComponent(value)};${expires};path=/;SameSite=Lax`;
+    }
+
+    function eraseCookie(name) {
+      document.cookie = `${name}=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT;`;
+    }
+
+    function getCookie(name) {
+      const cname = name + "=";
+      const decodedCookie = decodeURIComponent(document.cookie);
+      const ca = decodedCookie.split(';');
+      for(let i = 0; i < ca.length; i++) {
+        let c = ca[i].trim();
+        if (c.indexOf(cname) === 0) return c.substring(cname.length, c.length);
+      }
+      return "";
+    }
+
+    // Mappatura dadi Poker corretta: 1=9, 2=10, 3=J, 4=Q, 5=K, 6=A
+    const POKER_FACES = { 1: '9', 2: '10', 3: 'J', 4: 'Q', 5: 'K', 6: 'A' };
+
+    function getRandomDiceRoll() {
+      const array = new Uint32Array(1);
+      const limit = Math.floor(4294967296 / 6) * 6;
+      do {
+        window.crypto.getRandomValues(array);
+      } while (array[0] >= limit);
+      return (array[0] % 6) + 1;
+    }
+
+    // -------------------------------------------------------------
+    // CONFIGURAZIONE SUPABASE
+    // -------------------------------------------------------------
+    const SUPABASE_URL = 'https://yguyjlgcdzoyoxnxcfsc.supabase.co';
+    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlndXlqbGdjZHpveW94bnhjZnNjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTM0NDY2MDAsImV4cCI6MjEwOTAyMjYwMH0.YKwG4zdEdfAtDuB7aCH1r_DpEaMoQslJMAAw3QCzL7U';
+    
+    const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
+      realtime: { params: { eventsPerSecond: 10 }, timeout: 20000, heartbeatIntervalMs: 15000 },
+    });
+
+    let roomCode = null;
+    let savedMyId = getCookie("poker_dice_my_id") || localStorage.getItem("poker_dice_my_id");
+    let myPlayerId = savedMyId || ('p_' + Math.random().toString(36).substring(2, 9));
+    setCookie("poker_dice_my_id", myPlayerId);
+    localStorage.setItem("poker_dice_my_id", myPlayerId);
+
+    let lastEventId = null;
+    const writeQueue = [];
+    let isProcessingQueue = false;
+
+    window.addEventListener('online', syncWriteQueue);
+    window.addEventListener('offline', updateConnectionStatus);
+
+    function updateConnectionStatus() {
+      const banner = document.getElementById('offlineNotice');
+      if (!banner) return;
+      if (!navigator.onLine) banner.classList.remove('hidden');
+      else banner.classList.add('hidden');
+    }
+
+    function saveStateToCloud() {
+      if (!roomCode) return;
+      writeQueue.push({ roomCode: roomCode, statePayload: JSON.parse(JSON.stringify(GameState)) });
+      if (navigator.onLine) {
+        syncWriteQueue().catch(e => console.error("Errore sync:", e));
+      } else {
+        updateConnectionStatus();
+      }
+    }
+
+    async function syncWriteQueue() {
+      updateConnectionStatus();
+      if (isProcessingQueue || writeQueue.length === 0 || !navigator.onLine) return;
+      isProcessingQueue = true;
+
+      while (writeQueue.length > 0) {
+        const item = writeQueue[0];
+        try {
+          const { error } = await supabaseClient.from('rooms').update({ state: item.statePayload }).eq('code', item.roomCode);
+          if (!error) writeQueue.shift();
+          else {
+            await new Promise(r => setTimeout(r, 2000));
+          }
+        } catch (e) {
+          break;
+        }
+      }
+      isProcessingQueue = false;
+    }
+
+    const PLAYER_COLORS = ['#fbbf24', '#3b82f6', '#10b981', '#a855f7', '#f43f5e', '#06b6d4', '#f97316', '#84cc16'];
+
+    let _hapticLabel = null;
+    let _lastIosTick = 0;
+    function iosTick() {
+      try {
+        const now = Date.now();
+        if (now - _lastIosTick < 60) return;
+        _lastIosTick = now;
+        if (!_hapticLabel) {
+          const input = document.createElement('input');
+          input.type = 'checkbox';
+          input.setAttribute('switch', '');
+          _hapticLabel = document.createElement('label');
+          _hapticLabel.style.display = 'none';
+          _hapticLabel.appendChild(input);
+          document.body.appendChild(_hapticLabel);
+        }
+        _hapticLabel.click();
+      } catch (e) {}
+    }
+
+    function triggerHaptic(duration = 35) {
+      try {
+        if (typeof navigator.vibrate === 'function') { navigator.vibrate(duration); return; }
+        iosTick();
+      } catch (e) {}
+    }
+
+    class SoundEngine {
+      constructor() { this.ctx = null; this.enabled = true; }
+      init() {
+        if (!this.ctx) {
+          const AudioContext = window.AudioContext || window.webkitAudioContext;
+          if (AudioContext) this.ctx = new AudioContext();
+        }
+        if (this.ctx && this.ctx.state === 'suspended') this.ctx.resume();
+      }
+      playClick() {
+        if (!this.enabled) return;
+        this.init();
+        try {
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = 'triangle';
+          osc.frequency.setValueAtTime(500, this.ctx.currentTime);
+          osc.frequency.exponentialRampToValueAtTime(120, this.ctx.currentTime + 0.05);
+          gain.gain.setValueAtTime(0.15, this.ctx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.05);
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start();
+          osc.stop(this.ctx.currentTime + 0.05);
+        } catch (e) {}
+      }
+      playDiceRoll() {
+        if (!this.enabled) return;
+        this.init();
+        try {
+          for (let i = 0; i < 5; i++) {
+            const time = this.ctx.currentTime + i * 0.06;
+            const osc = this.ctx.createOscillator();
+            const gain = this.ctx.createGain();
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(200 + Math.random() * 200, time);
+            gain.gain.setValueAtTime(0.15, time);
+            gain.gain.exponentialRampToValueAtTime(0.001, time + 0.05);
+            osc.connect(gain);
+            gain.connect(this.ctx.destination);
+            osc.start(time);
+            osc.stop(time + 0.06);
+          }
+        } catch (e) {}
+      }
+      playBank() {
+        if (!this.enabled) return;
+        this.init();
+        try {
+          [523.25, 659.25, 783.99, 1046.50].forEach((freq, idx) => {
+            const time = this.ctx.currentTime + idx * 0.08;
+            const osc = this.ctx.createOscillator();
+            const gain = this.ctx.createGain();
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(freq, time);
+            gain.gain.setValueAtTime(0.2, time);
+            gain.gain.exponentialRampToValueAtTime(0.001, time + 0.18);
+            osc.connect(gain);
+            gain.connect(this.ctx.destination);
+            osc.start(time);
+            osc.stop(time + 0.2);
+          });
+        } catch (e) {}
+      }
+      playVictory() {
+        if (!this.enabled) return;
+        this.init();
+        try {
+          [523.25, 659.25, 783.99, 1046.50].forEach((freq, i) => {
+            const t = this.ctx.currentTime + i * 0.12;
+            const osc = this.ctx.createOscillator();
+            const gain = this.ctx.createGain();
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(freq, t);
+            gain.gain.setValueAtTime(0.25, t);
+            gain.gain.exponentialRampToValueAtTime(0.01, t + 0.25);
+            osc.connect(gain);
+            gain.connect(this.ctx.destination);
+            osc.start(t);
+            osc.stop(t + 0.27);
+          });
+        } catch (e) {}
+      }
+    }
+    const sound = new SoundEngine();
+
+    let TARGET_SCORE = 5000;
+    const GameState = {
+      targetScore: 5000,
+      numPlayers: 1,
+      activePlayer: 1,
+      playerIds: {},
+      playerNames: {},
+      scores: {},
+      round: 1,
+      rollsLeft: 3,
+      phase: 'ready',
+      dice: [
+        { value: 6, status: 'free' },
+        { value: 6, status: 'free' },
+        { value: 5, status: 'free' },
+        { value: 4, status: 'free' },
+        { value: 3, status: 'free' },
+      ],
+      turnAccumulatedScore: 0,
+      logs: [],
+      chatLogs: [],
+      lastEvent: null
+    };
+
+    function showQuickToast(msg, icon = '🃏') {
+      const toastEl = document.getElementById('quickToast');
+      const contentEl = document.getElementById('toastContent');
+      const iconEl = document.getElementById('toastIcon');
+      const msgEl = document.getElementById('toastMessage');
+
+      if (!toastEl || !contentEl || !msgEl) return;
+      iconEl.textContent = icon;
+      msgEl.textContent = msg;
+
+      toastEl.classList.remove('hidden', 'toast-animate');
+      void toastEl.offsetWidth;
+      toastEl.classList.add('toast-animate');
+
+      setTimeout(() => { toastEl.classList.add('hidden'); }, 2800);
+    }
+
+    function isMyTurn() {
+      return GameState.playerIds[GameState.activePlayer] === myPlayerId;
+    }
+
+    function getMyPlayerName() {
+      for (let i = 1; i <= GameState.numPlayers; i++) {
+        if (GameState.playerIds[i] === myPlayerId) return GameState.playerNames[i];
+      }
+      return getCookie("poker_dice_player_name") || "Giocatore";
+    }
+
+    function getPlayerName(id) {
+      return GameState.playerNames[id] || `Giocatore ${id}`;
+    }
+
+    function getPlayerColor(senderId) {
+      for (let i = 1; i <= GameState.numPlayers; i++) {
+        if (GameState.playerIds[i] === senderId) return PLAYER_COLORS[(i - 1) % PLAYER_COLORS.length];
+      }
+      return '#9ca3af';
+    }
+
+    function getCounts(values) {
+      const counts = {1:0, 2:0, 3:0, 4:0, 5:0, 6:0};
+      values.forEach(v => { if (counts[v] !== undefined) counts[v]++; });
+      return counts;
+    }
+
+    // Valutazione esatta delle mani di Poker Dice (inclusa la Scala)
+    function evaluatePokerHand(values) {
+      if (!values || values.length === 0) return { score: 0, name: "Nessun dado selezionato", desc: "Seleziona i dadi per comporre la combinazione" };
+
+      const countsObj = getCounts(values);
+      const counts = Object.values(countsObj).sort((a, b) => b - a);
+      const sortedVals = [...values].sort((a, b) => a - b);
+
+      // Scale: 1,2,3,4,5 (9-K) oppure 2,3,4,5,6 (10-A) se abbiamo esattamente 5 dadi
+      const isStraight1 = values.length === 5 && sortedVals.toString() === "1,2,3,4,5";
+      const isStraight2 = values.length === 5 && sortedVals.toString() === "2,3,4,5,6";
+
+      if (values.length === 5 && counts[0] === 5) {
+        const val = Number(Object.keys(countsObj).find(k => countsObj[k] === 5));
+        return { score: 500, name: "Five of a Kind (Cinque di un tipo)", desc: `Cinque ${POKER_FACES[val]}` };
+      }
+      if (values.length === 5 && counts[0] === 4) {
+        const val = Number(Object.keys(countsObj).find(k => countsObj[k] === 4));
+        return { score: 350, name: "Four of a Kind (Poker)", desc: `Poker di ${POKER_FACES[val]}` };
+      }
+      if (values.length === 5 && counts[0] === 3 && counts[1] === 2) {
+        const val = Number(Object.keys(countsObj).find(k => countsObj[k] === 3));
+        return { score: 250, name: "Full House (Full)", desc: `Tris e Coppia (Tris di ${POKER_FACES[val]})` };
+      }
+      if (isStraight1 || isStraight2) {
+        return { score: 200, name: "Straight (Scala)", desc: isStraight2 ? "Scala maggiore (10-A)" : "Scala (9-K)" };
+      }
+      if (counts[0] === 3) {
+        const val = Number(Object.keys(countsObj).find(k => countsObj[k] === 3));
+        return { score: 150, name: "Three of a Kind (Tris)", desc: `Tris di ${POKER_FACES[val]}` };
+      }
+      if (counts[0] === 2 && counts[1] === 2) {
+        return { score: 100, name: "Two Pair (Doppia Coppia)", desc: "Doppia Coppia" };
+      }
+      if (counts[0] === 2) {
+        const val = Number(Object.keys(countsObj).find(k => countsObj[k] === 2));
+        return { score: 50, name: "One Pair (Coppia)", desc: `Coppia di ${POKER_FACES[val]}` };
+      }
+
+      const maxVal = Math.max(...values);
+      return { score: 10 * values.length, name: "Carta Alta / Dadi scelti", desc: `Valore parziale: ${values.map(v => POKER_FACES[v]).join(', ')}` };
+    }
+
+    const cubeElements = [0,1,2,3,4].map(i => document.getElementById(`cube-${i}`));
+    const diceContainers = document.querySelectorAll('.dice-container');
+    const actionButtons = document.getElementById('actionButtons');
+    const btnRoll = document.getElementById('btnRoll');
+    const btnRollText = document.getElementById('btnRollText');
+    const btnBank = document.getElementById('btnBank');
+    const btnBankText = document.getElementById('btnBankText');
+    const btnNewGame = document.getElementById('btnNewGame');
+    const btnSound = document.getElementById('btnSound');
+    const btnRules = document.getElementById('btnRules');
+    const btnGotItRules = document.getElementById('btnGotItRules');
+    const btnCloseRules = document.getElementById('btnCloseRules');
+    const rulesModal = document.getElementById('rulesModal');
+    const btnLeaderboard = document.getElementById('btnLeaderboard');
+    const btnCloseLeaderboard = document.getElementById('btnCloseLeaderboard');
+    const leaderboardModal = document.getElementById('leaderboardModal');
+    const leaderboardContainer = document.getElementById('leaderboardContainer');
+    const leaderboardTargetLabel = document.getElementById('leaderboardTargetLabel');
+
+    const winModal = document.getElementById('winModal');
+    const winLeaderboardContainer = document.getElementById('winLeaderboardContainer');
+    const btnRestartWin = document.getElementById('btnRestartWin');
+    const playersContainer = document.getElementById('playersContainer');
+    const turnScoreTotalEl = document.getElementById('turnScoreTotal');
+    const availableRollsCountEl = document.getElementById('availableRollsCount');
+    const statusMessageEl = document.getElementById('statusMessage');
+    const selectionPillEl = document.getElementById('selectionPill');
+    const logContainer = document.getElementById('logContainer');
+    const roundCounterEl = document.getElementById('roundCounter');
+
+    const roomModal = document.getElementById('roomModal');
+    const inputPlayerName = document.getElementById('inputPlayerName');
+    const inputRoomCode = document.getElementById('inputRoomCode');
+    const btnJoinRoom = document.getElementById('btnJoinRoom');
+    const roomBadge = document.getElementById('roomBadge');
+    const inputTargetScore = document.getElementById('inputTargetScore');
+    const newGameModal = document.getElementById('newGameModal');
+    const playerSelectList = document.getElementById('playerSelectList');
+    const btnCancelNewGame = document.getElementById('btnCancelNewGame');
+    const btnConfirmNewGame = document.getElementById('btnConfirmNewGame');
+    const btnLeaveRoom = document.getElementById('btnLeaveRoom');
+
+    const editPlayersModal = document.getElementById('editPlayersModal');
+    const editPlayerSelectList = document.getElementById('editPlayerSelectList');
+    const btnCancelEditPlayers = document.getElementById('btnCancelEditPlayers');
+    const btnConfirmEditPlayers = document.getElementById('btnConfirmEditPlayers');
+
+    const btnTargetScoreHeader = document.getElementById('btnTargetScoreHeader');
+    const btnTargetScoreMobile = document.getElementById('btnTargetScoreMobile');
+    const targetScoreHeaderLabel = document.getElementById('targetScoreHeaderLabel');
+    const targetScoreModal = document.getElementById('targetScoreModal');
+    const targetScoreInput = document.getElementById('targetScoreInput');
+    const btnCancelTargetScore = document.getElementById('btnCancelTargetScore');
+    const btnSaveTargetScore = document.getElementById('btnSaveTargetScore');
+
+    const chatLogContainer = document.getElementById('chatLogContainer');
+    const chatForm = document.getElementById('chatForm');
+    const chatInput = document.getElementById('chatInput');
+
+    function openTargetScoreModal() {
+      triggerHaptic(20);
+      if (targetScoreInput) targetScoreInput.value = GameState.targetScore || TARGET_SCORE;
+      if (targetScoreModal) targetScoreModal.classList.remove('hidden');
+    }
+
+    function closeTargetScoreModal() {
+      triggerHaptic(20);
+      if (targetScoreModal) targetScoreModal.classList.add('hidden');
+    }
+
+    function saveTargetScoreFromModal() {
+      triggerHaptic(25);
+      const val = parseInt(targetScoreInput.value);
+      if (isNaN(val) || val < 1000) { alert("Inserisci un punteggio valido (minimo 1000)!"); return; }
+      GameState.targetScore = val;
+      TARGET_SCORE = val;
+      addLog(`🎯 Obiettivo del tavolo impostato a ${val.toLocaleString('it-IT')} pt`, true);
+      closeTargetScoreModal();
+      updateUI();
+      saveStateToCloud();
+    }
+
+    function openEditPlayersModal() {
+      editPlayerSelectList.innerHTML = '';
+      for (let i = 1; i <= GameState.numPlayers; i++) {
+        const pName = getPlayerName(i);
+        const playerColor = PLAYER_COLORS[(i - 1) % PLAYER_COLORS.length];
+        const label = document.createElement('label');
+        label.className = 'flex items-center gap-2 p-2 bg-zinc-950 rounded-xl cursor-pointer border border-zinc-800 text-xs font-semibold';
+        label.innerHTML = `<input type="checkbox" data-player-index="${i}" checked class="w-4 h-4 accent-amber-500 rounded"> <span style="color: ${playerColor}">${pName}</span>`;
+        editPlayerSelectList.appendChild(label);
+      }
+      editPlayersModal.classList.remove('hidden');
+    }
+
+    function openNewGameModal() {
+      playerSelectList.innerHTML = '';
+      for (let i = 1; i <= GameState.numPlayers; i++) {
+        const pName = getPlayerName(i);
+        const playerColor = PLAYER_COLORS[(i - 1) % PLAYER_COLORS.length];
+        const label = document.createElement('label');
+        label.className = 'flex items-center gap-2 p-2 bg-zinc-950 rounded-xl cursor-pointer border border-zinc-800 text-xs font-semibold';
+        label.innerHTML = `<input type="checkbox" data-player-index="${i}" checked class="w-4 h-4 accent-amber-500 rounded"> <span style="color: ${playerColor}">${pName}</span>`;
+        playerSelectList.appendChild(label);
+      }
+      newGameModal.classList.remove('hidden');
+    }
+
+    function addLog(text, highlight = false) {
+      if (!GameState.logs) GameState.logs = [];
+      GameState.logs.unshift({ text, highlight });
+      if (GameState.logs.length > 200) GameState.logs.pop();
+      renderLogs();
+    }
+
+    function renderLogs() {
+      if (!logContainer) return;
+      logContainer.innerHTML = '';
+      if (!GameState.logs || GameState.logs.length === 0) {
+        logContainer.innerHTML = `<p class="text-zinc-500 italic">Pronti al tavolo. Obiettivo ${(GameState.targetScore || TARGET_SCORE).toLocaleString('it-IT')} punti!</p>`;
+        return;
+      }
+      GameState.logs.forEach(item => {
+        const p = document.createElement('p');
+        p.className = `leading-relaxed ${item.highlight ? 'text-amber-300 font-bold' : 'text-zinc-300'}`;
+        p.innerHTML = item.text;
+        logContainer.appendChild(p);
+      });
+    }
+
+    function renderChatHistory() {
+      if (!chatLogContainer) return;
+      chatLogContainer.innerHTML = '';
+      if (!GameState.chatLogs || GameState.chatLogs.length === 0) {
+        chatLogContainer.innerHTML = `<p class="text-zinc-500 italic text-[11px]">Chat attiva. Scrivi un messaggio ai giocatori!</p>`;
+        return;
+      }
+      GameState.chatLogs.forEach(c => {
+        const isSelf = c.senderId === myPlayerId;
+        const playerColor = getPlayerColor(c.senderId);
+        const msgDiv = document.createElement('div');
+        msgDiv.className = `text-xs leading-tight font-sans ${isSelf ? 'text-white' : 'text-zinc-200'}`;
+        msgDiv.innerHTML = `<span class="text-[10px] text-zinc-500 mr-1">[${c.time}]</span><strong class="font-bold" style="color: ${playerColor}">${c.sender}:</strong> <span>${escapeHtml(c.message)}</span>`;
+        chatLogContainer.appendChild(msgDiv);
+      });
+      chatLogContainer.scrollTop = chatLogContainer.scrollHeight;
+    }
+
+    function escapeHtml(text) {
+      return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    }
+
+    if (chatForm) {
+      chatForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const msg = chatInput.value.trim();
+        if (!msg || !roomCode) return;
+
+        const senderName = getMyPlayerName();
+        const timeStr = new Date().toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' });
+        
+        if (!GameState.chatLogs) GameState.chatLogs = [];
+        GameState.chatLogs.push({ sender: senderName, message: msg, senderId: myPlayerId, time: timeStr });
+        if (GameState.chatLogs.length > 100) GameState.chatLogs.shift();
+
+        chatInput.value = '';
+        renderChatHistory();
+        saveStateToCloud();
+      });
+    }
+
+    function initScoreboard() {
+      if (!playersContainer) return;
+      playersContainer.innerHTML = '';
+      const totalCards = GameState.numPlayers;
+      
+      for(let i=1; i<=totalCards; i++) {
+        if (!GameState.scores[i]) GameState.scores[i] = 0;
+        
+        const card = document.createElement('div');
+        card.id = `cardP${i}`;
+        const playerColor = PLAYER_COLORS[(i - 1) % PLAYER_COLORS.length];
+        
+        card.innerHTML = `
+          <div class="flex items-center justify-between">
+            <span class="text-[10px] font-bold uppercase tracking-wider text-left truncate max-w-[95px]" id="labelP${i}"></span>
+          </div>
+          <div class="flex items-baseline justify-between mt-1">
+            <span class="text-lg sm:text-xl font-extrabold text-white font-display" id="scoreP${i}">0</span>
+            <span class="text-[9px] text-zinc-400" id="subP${i}">pt</span>
+          </div>
+          <div class="w-full bg-zinc-800 rounded-full h-1 mt-1 overflow-hidden">
+            <div id="barP${i}" class="h-full rounded-full transition-all duration-300" style="width: 0%; background-color: ${playerColor}"></div>
+          </div>
+        `;
+        playersContainer.appendChild(card);
+      }
+    }
+
+    // Rotazioni cubi Poker corrette per le facce 9, 10, J, Q, K, A
+    const faceRotations = {
+      1: { x: 0, y: 0 },       // 9
+      2: { x: 0, y: -90 },     // 10
+      3: { x: 0, y: 180 },     // J
+      4: { x: 0, y: 90 },      // Q
+      5: { x: -90, y: 0 },     // K
+      6: { x: 90, y: 0 }       // A
+    };
+
+    function applyCubeRotation(cubeEl, faceNumber) {
+      const rot = faceRotations[faceNumber] || { x: 0, y: 0 };
+      cubeEl.style.transform = `rotateX(${rot.x}deg) rotateY(${rot.y}deg)`;
+    }
+
+    function updateUI() {
+      if (newGameModal && !newGameModal.classList.contains('hidden')) newGameModal.classList.add('hidden');
+      if (editPlayersModal && !editPlayersModal.classList.contains('hidden')) editPlayersModal.classList.add('hidden');
+
+      TARGET_SCORE = GameState.targetScore || TARGET_SCORE;
+      if (targetScoreHeaderLabel) targetScoreHeaderLabel.textContent = `${TARGET_SCORE.toLocaleString('it-IT')} pt`;
+      renderLogs();
+      initScoreboard();
+      const totalCards = GameState.numPlayers;
+      
+      for(let i=1; i<=totalCards; i++) {
+        const cardEl = document.getElementById(`cardP${i}`);
+        const labelEl = document.getElementById(`labelP${i}`);
+        const scoreEl = document.getElementById(`scoreP${i}`);
+        const barEl = document.getElementById(`barP${i}`);
+        if(!cardEl) continue;
+        const playerColor = PLAYER_COLORS[(i - 1) % PLAYER_COLORS.length];
+
+        let currentScore = GameState.scores[i] || 0;
+        let isMe = GameState.playerIds[i] === myPlayerId;
+        labelEl.innerHTML = (GameState.activePlayer === i ? '● ' : '') + getPlayerName(i) + (isMe ? ' (Tu)' : '');
+        labelEl.style.color = playerColor;
+
+        scoreEl.textContent = currentScore;
+        barEl.style.width = Math.min(100, (currentScore / TARGET_SCORE) * 100) + '%';
+        cardEl.className = "relative p-2 rounded-xl border transition-all " + 
+          (GameState.activePlayer === i ? "bg-zinc-900 border-amber-500/80 scale-[1.02] shadow" : "bg-zinc-900/40 border-zinc-800 opacity-60");
+        cardEl.style.borderColor = playerColor;
+      }
+
+      renderLeaderboard();
+
+      availableRollsCountEl.textContent = `${GameState.rollsLeft} di 3`;
+
+      const turnAllowed = isMyTurn();
+
+      if (!turnAllowed) {
+        btnRoll.disabled = true;
+        btnRoll.classList.add('opacity-50', 'cursor-not-allowed');
+        btnRollText.textContent = `Turno di ${getPlayerName(GameState.activePlayer)}`;
+        btnBank.disabled = true;
+        btnBank.classList.add('opacity-40', 'cursor-not-allowed');
+      } else {
+        if (GameState.phase === 'ready') {
+          btnRoll.disabled = false;
+          btnRoll.classList.remove('opacity-50', 'cursor-not-allowed');
+          btnRollText.textContent = "Lancia i 5 Dadi";
+          btnBank.disabled = true;
+          btnBank.classList.add('opacity-40', 'cursor-not-allowed');
+        } else if (GameState.phase === 'rolling') {
+          btnRoll.disabled = true;
+          btnRoll.classList.add('opacity-50', 'cursor-not-allowed');
+          btnRollText.textContent = "Mescolando...";
+          btnBank.disabled = true;
+          btnBank.classList.add('opacity-40', 'cursor-not-allowed');
+        } else if (GameState.phase === 'rolled') {
+          btnBank.disabled = false;
+          btnBank.classList.remove('opacity-40', 'cursor-not-allowed');
+          btnBankText.textContent = "Registra Mano";
+
+          if (GameState.rollsLeft > 0) {
+            btnRoll.disabled = false;
+            btnRoll.classList.remove('opacity-50', 'cursor-not-allowed');
+            btnRollText.textContent = `Rilancia dadi liberi (${GameState.rollsLeft} rimasti)`;
+          } else {
+            btnRoll.disabled = true;
+            btnRoll.classList.add('opacity-50', 'cursor-not-allowed');
+            btnRollText.textContent = "Lanci esauriti - Registra";
+          }
+        }
+      }
+
+      // Aggiornamento dinamico basato sui dadi selezionati dal giocatore
+      const selectedDiceValues = [];
+      GameState.dice.forEach(d => { if (d.status === 'selected') selectedDiceValues.push(d.value); });
+      
+      const handEval = evaluatePokerHand(selectedDiceValues);
+
+      turnScoreTotalEl.textContent = handEval.score;
+      if (selectedDiceValues.length === 0) {
+        selectionPillEl.textContent = `Seleziona i dadi per comporre la tua combinazione e registrare il punteggio`;
+      } else {
+        selectionPillEl.textContent = `Combinazione scelta: ${handEval.name} — ${handEval.desc} (${handEval.score} pt)`;
+      }
+
+      GameState.dice.forEach((d, idx) => {
+        const container = diceContainers[idx];
+        const sub = container.querySelector('.dice-sub');
+        container.className = 'dice-container transition-all duration-200';
+        if (d.status === 'selected') {
+          container.classList.add('selected');
+          sub.textContent = 'Bloccato';
+          sub.className = 'dice-sub text-[9px] text-center font-bold text-amber-400 mt-1 uppercase';
+        } else {
+          sub.textContent = 'In gioco';
+          sub.className = 'dice-sub text-[9px] text-center font-bold text-zinc-500 mt-1 uppercase';
+        }
+        applyCubeRotation(cubeElements[idx], d.value);
+      });
+
+      roundCounterEl.textContent = `Round ${GameState.round} • ${getPlayerName(GameState.activePlayer)}`;
+      statusMessageEl.textContent = turnAllowed ? "Scegli quali dadi bloccare e rilancia gli altri!" : `Turno di ${getPlayerName(GameState.activePlayer)}`;
+      if (window.lucide) lucide.createIcons();
+    }
+
+    function renderLeaderboard() {
+      if (!leaderboardContainer) return;
+      if (leaderboardTargetLabel) {
+        leaderboardTargetLabel.textContent = `Obiettivo Tavolo: ${(GameState.targetScore || TARGET_SCORE).toLocaleString('it-IT')} pt`;
+      }
+      leaderboardContainer.innerHTML = '';
+      const list = [];
+      for (let i = 1; i <= GameState.numPlayers; i++) {
+        list.push({ id: i, score: GameState.scores[i] || 0, isActive: GameState.activePlayer === i });
+      }
+      list.sort((a, b) => b.score - a.score);
+
+      list.forEach((p, idx) => {
+        const playerColor = PLAYER_COLORS[(p.id - 1) % PLAYER_COLORS.length];
+        const row = document.createElement('div');
+        row.className = `flex items-center justify-between p-2.5 rounded-xl border ${p.isActive ? 'bg-amber-500/10 border-amber-500/50' : 'bg-zinc-950 border-zinc-800'}`;
+        row.innerHTML = `
+          <div class="flex items-center gap-2">
+            <span class="w-5 h-5 rounded-full flex items-center justify-center bg-zinc-800 text-xs font-bold">${idx + 1}</span>
+            <span class="text-xs font-bold" style="color: ${playerColor}">${getPlayerName(p.id)}</span>
+          </div>
+          <span class="text-sm font-black text-white">${p.score} pt</span>
+        `;
+        leaderboardContainer.appendChild(row);
+      });
+    }
+
+    function rollDice() {
+      if (!isMyTurn() || GameState.phase === 'rolling') return;
+      if (GameState.phase === 'rolled' && GameState.rollsLeft <= 0) return;
+
+      GameState.phase = 'rolling';
+      sound.playDiceRoll();
+      triggerHaptic(40);
+      updateUI();
+      saveStateToCloud();
+
+      const indicesToRoll = [];
+      GameState.dice.forEach((d, idx) => {
+        if (d.status === 'free') {
+          indicesToRoll.push(idx);
+          cubeElements[idx].classList.add('is-rolling');
+        }
+      });
+
+      if (indicesToRoll.length === 0 && GameState.phase === 'ready') {
+        GameState.dice.forEach((d, idx) => {
+          indicesToRoll.push(idx);
+          cubeElements[idx].classList.add('is-rolling');
+        });
+      }
+
+      statusMessageEl.textContent = "Lancio dadi poker...";
+
+      setTimeout(() => {
+        const newlyRolledValues = [];
+        indicesToRoll.forEach(idx => {
+          const val = getRandomDiceRoll();
+          GameState.dice[idx].value = val;
+          newlyRolledValues.push(val);
+          cubeElements[idx].classList.remove('is-rolling');
+          applyCubeRotation(cubeElements[idx], val);
+        });
+
+        GameState.phase = 'rolled';
+        GameState.rollsLeft--;
+
+        const allValues = GameState.dice.map(d => d.value);
+        addLog(`${getPlayerName(GameState.activePlayer)} lancia: [ ${allValues.map(v => POKER_FACES[v]).join(', ')} ]`);
+
+        updateUI();
+        saveStateToCloud();
+      }, 700);
+    }
+
+    function bankPoints() {
+      if (!isMyTurn() || GameState.phase !== 'rolled') return;
+
+      const selectedDiceValues = [];
+      GameState.dice.forEach(d => { if (d.status === 'selected') selectedDiceValues.push(d.value); });
+      
+      if (selectedDiceValues.length === 0) {
+        alert("Seleziona almeno un dado prima di registrare il punteggio!");
+        return;
+      }
+
+      const handEval = evaluatePokerHand(selectedDiceValues);
+
+      GameState.scores[GameState.activePlayer] += handEval.score;
+      sound.playBank();
+      triggerHaptic(60);
+      addLog(`🃏 ${getPlayerName(GameState.activePlayer)} registra la combinazione <strong>${handEval.name}</strong> (+${handEval.score} pt)!`, true);
+
+      if (GameState.scores[GameState.activePlayer] >= TARGET_SCORE) {
+        triggerVictory(GameState.activePlayer, GameState.scores[GameState.activePlayer]);
+        saveStateToCloud();
+        return;
+      }
+
+      nextTurn();
+    }
+
+    function nextTurn() {
+      GameState.rollsLeft = 3;
+      GameState.activePlayer++;
+      if (GameState.activePlayer > GameState.numPlayers) {
+        GameState.activePlayer = 1;
+        GameState.round++;
+      }
+      GameState.phase = 'ready';
+      GameState.dice.forEach(d => { d.status = 'free'; });
+      updateUI();
+      saveStateToCloud();
+    }
+
+    function triggerVictory(player, finalScore) {
+      sound.playVictory();
+      triggerHaptic([100, 50, 100, 50, 200]);
+      
+      const list = [];
+      for (let i = 1; i <= GameState.numPlayers; i++) {
+        list.push({ id: i, score: GameState.scores[i] || 0 });
+      }
+      list.sort((a, b) => b.score - a.score);
+
+      document.getElementById('winnerTitle').textContent = "VITTORIA AL TAVOLO!";
+      document.getElementById('winnerSubtitle').textContent = `${getPlayerName(player)} ha vinto con ${finalScore} punti!`;
+
+      if (winLeaderboardContainer) {
+        winLeaderboardContainer.innerHTML = '';
+        list.forEach((p, idx) => {
+          const playerColor = PLAYER_COLORS[(p.id - 1) % PLAYER_COLORS.length];
+          const row = document.createElement('div');
+          const isMe = GameState.playerIds[p.id] === myPlayerId;
+          row.className = `flex items-center justify-between p-2 rounded-xl border ${isMe ? 'bg-amber-500/10 border-amber-500/50' : 'bg-zinc-950 border-zinc-800'}`;
+          row.innerHTML = `
+            <div class="flex items-center gap-2">
+              <span class="w-5 h-5 rounded-full flex items-center justify-center bg-zinc-800 text-xs font-bold">${idx + 1}</span>
+              <span class="text-xs font-bold" style="color: ${playerColor}">${getPlayerName(p.id)} ${isMe ? '(Tu)' : ''}</span>
+            </div>
+            <span class="text-xs font-black text-white">${p.score} pt</span>
+          `;
+          winLeaderboardContainer.appendChild(row);
+        });
+      }
+
+      winModal.classList.remove('hidden');
+    }
+
+    function onDiceClick(index) {
+      if (!isMyTurn() || GameState.phase !== 'rolled') return;
+      const d = GameState.dice[index];
+
+      sound.playClick();
+      triggerHaptic(20);
+      d.status = d.status === 'free' ? 'selected' : 'free';
+      updateUI();
+      saveStateToCloud();
+    }
+
+    function startNewGame(selectedPlayerIndices) {
+      triggerHaptic(30);
+      const shuffled = [...selectedPlayerIndices];
+      for (let i = shuffled.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+      }
+
+      const newIds = {}, newNames = {}, newScores = {};
+      let count = 0;
+      shuffled.forEach(oldIdx => {
+        count++;
+        newIds[count] = GameState.playerIds[oldIdx];
+        newNames[count] = GameState.playerNames[oldIdx];
+        newScores[count] = 0;
+      });
+
+      GameState.numPlayers = Math.max(1, count);
+      GameState.playerIds = newIds;
+      GameState.playerNames = newNames;
+      GameState.scores = newScores;
+      GameState.activePlayer = 1;
+      GameState.round = 1;
+      GameState.rollsLeft = 3;
+      GameState.phase = 'ready';
+      GameState.dice = [
+        { value: 6, status: 'free' }, { value: 6, status: 'free' }, { value: 5, status: 'free' },
+        { value: 4, status: 'free' }, { value: 3, status: 'free' },
+      ];
+      GameState.logs = [];
+      addLog(`🃏 Nuova mano avviata! In bocca al lupo.`);
+      initScoreboard();
+      updateUI();
+      saveStateToCloud();
+    }
+
+    function initializeNewRoomGame(name, targetScore) {
+      Object.assign(GameState, {
+        targetScore,
+        numPlayers: 1,
+        activePlayer: 1,
+        playerIds: { 1: myPlayerId },
+        playerNames: { 1: name },
+        scores: { 1: 0 },
+        round: 1,
+        rollsLeft: 3,
+        phase: 'ready',
+        dice: [
+          { value: 6, status: 'free' }, { value: 5, status: 'free' }, { value: 4, status: 'free' },
+          { value: 3, status: 'free' }, { value: 2, status: 'free' },
+        ],
+        logs: [{ text: "Tavolo Poker Dice pronto. Buon divertimento!", highlight: false }],
+        chatLogs: [],
+        lastEvent: null
+      });
+    }
+
+    async function joinRoomProcess(name, code, targetScoreFromInput, isPageReload = false) {
+      roomCode = code;
+      try {
+        let response = await supabaseClient.from('rooms').select('*').eq('code', roomCode).maybeSingle();
+        if (response.error) throw response.error;
+
+        let data = response.data;
+        if (!data) {
+          const tScore = targetScoreFromInput || 5000;
+          initializeNewRoomGame(name, tScore);
+          TARGET_SCORE = tScore;
+          await supabaseClient.from('rooms').insert([{ code: roomCode, state: GameState }]);
+        } else {
+          if (!data.state) throw new Error("Stato stanza non valido.");
+          Object.assign(GameState, data.state);
+          TARGET_SCORE = GameState.targetScore || 5000;
+          
+          let existingPlayerIndex = -1;
+          for (let i = 1; i <= GameState.numPlayers; i++) {
+            if (GameState.playerIds[i] === myPlayerId) { existingPlayerIndex = i; break; }
+          }
+
+          if (existingPlayerIndex === -1) {
+            GameState.numPlayers++;
+            GameState.playerIds[GameState.numPlayers] = myPlayerId;
+            GameState.playerNames[GameState.numPlayers] = name;
+            GameState.scores[GameState.numPlayers] = 0;
+            await supabaseClient.from('rooms').update({ state: GameState }).eq('code', roomCode);
+          }
+        }
+
+        setCookie("poker_dice_player_name", name);
+        setCookie("poker_dice_room_code", roomCode);
+        localStorage.setItem("poker_dice_player_name", name);
+        localStorage.setItem("poker_dice_room_code", roomCode);
+
+        roomModal.classList.add('hidden');
+        roomBadge.textContent = `Tavolo: ${roomCode}`;
+
+        supabaseClient.channel('room-sync-' + roomCode)
+          .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'rooms', filter: `code=eq.${roomCode}` }, payload => {
+            if (payload.new && payload.new.state) {
+              const newState = payload.new.state;
+              if (newState.lastEvent && newState.lastEvent.id !== lastEventId) {
+                lastEventId = newState.lastEvent.id;
+                if (!isMyTurn()) showQuickToast(newState.lastEvent.msg);
+              }
+              Object.assign(GameState, newState);
+              if (!GameState.chatLogs) GameState.chatLogs = [];
+              renderChatHistory();
+              initScoreboard();
+              updateUI();
+            }
+          })
+          .subscribe();
+
+        renderChatHistory();
+        initScoreboard();
+        updateUI();
+        return true;
+      } catch (err) {
+        alert(`Errore di connessione: ${err.message || err}`);
+        return false;
+      }
+    }
+
+    btnJoinRoom.addEventListener('click', async () => {
+      const name = inputPlayerName.value.trim();
+      const code = inputRoomCode.value.trim();
+      if (!name || !code) { alert("Inserisci nome e codice tavolo!"); return; }
+      triggerHaptic(25);
+      const tScore = parseInt(inputTargetScore.value) || 5000;
+      await joinRoomProcess(name, code, tScore, false);
+    });
+
+    if (btnLeaveRoom) {
+      btnLeaveRoom.addEventListener('click', () => {
+        triggerHaptic(20);
+        eraseCookie("poker_dice_room_code");
+        localStorage.removeItem("poker_dice_room_code");
+        roomCode = null;
+        newGameModal.classList.add('hidden');
+        roomBadge.textContent = "Tavolo: --";
+        roomModal.classList.remove('hidden');
+      });
+    }
+
+    if (roomBadge) {
+      roomBadge.addEventListener('click', () => {
+        if (!roomCode) return;
+        triggerHaptic(20);
+        openEditPlayersModal();
+      });
+    }
+
+    if (btnCancelEditPlayers) btnCancelEditPlayers.addEventListener('click', () => editPlayersModal.classList.add('hidden'));
+    if (btnConfirmEditPlayers) {
+      btnConfirmEditPlayers.addEventListener('click', () => {
+        triggerHaptic(20);
+        const checkboxes = editPlayerSelectList.querySelectorAll('input[type="checkbox"]');
+        const selectedIndices = [];
+        checkboxes.forEach(cb => { if (cb.checked) selectedIndices.push(parseInt(cb.getAttribute('data-player-index'))); });
+        if (selectedIndices.length === 0) { alert("Seleziona almeno un giocatore!"); return; }
+
+        const newIds = {}, newNames = {}, newScores = {};
+        let count = 0;
+        selectedIndices.forEach(oldIdx => {
+          count++;
+          newIds[count] = GameState.playerIds[oldIdx];
+          newNames[count] = GameState.playerNames[oldIdx];
+          newScores[count] = GameState.scores[oldIdx];
+        });
+
+        GameState.numPlayers = count;
+        GameState.playerIds = newIds;
+        GameState.playerNames = newNames;
+        GameState.scores = newScores;
+        if (GameState.activePlayer > GameState.numPlayers) GameState.activePlayer = 1;
+
+        editPlayersModal.classList.add('hidden');
+        initScoreboard();
+        updateUI();
+        saveStateToCloud();
+      });
+    }
+
+    window.onload = async function () {
+      GameState.dice.forEach((d, i) => applyCubeRotation(cubeElements[i], d.value));
+      diceContainers.forEach((el, index) => el.addEventListener('click', () => onDiceClick(index)));
+
+      const savedName = getCookie("poker_dice_player_name") || localStorage.getItem("poker_dice_player_name");
+      const savedRoom = getCookie("poker_dice_room_code") || localStorage.getItem("poker_dice_room_code");
+
+      if (savedName) inputPlayerName.value = savedName;
+      if (savedRoom) inputRoomCode.value = savedRoom;
+
+      if (savedName && savedRoom) {
+        await joinRoomProcess(savedName, savedRoom, 5000, true);
+      }
+
+      btnRoll.addEventListener('click', () => { if (isMyTurn()) triggerHaptic(20); sound.init(); rollDice(); });
+      btnBank.addEventListener('click', () => { if (isMyTurn()) triggerHaptic(20); bankPoints(); });
+
+      btnNewGame.addEventListener('click', () => { triggerHaptic(20); openNewGameModal(); });
+      btnCancelNewGame.addEventListener('click', () => newGameModal.classList.add('hidden'));
+      btnConfirmNewGame.addEventListener('click', () => {
+        triggerHaptic(20);
+        const checkboxes = playerSelectList.querySelectorAll('input[type="checkbox"]');
+        const selectedIndices = [];
+        checkboxes.forEach(cb => { if (cb.checked) selectedIndices.push(parseInt(cb.getAttribute('data-player-index'))); });
+        if (selectedIndices.length === 0) { alert("Seleziona almeno un giocatore!"); return; }
+        newGameModal.classList.add('hidden');
+        startNewGame(selectedIndices);
+      });
+
+      const presetBtns = document.querySelectorAll('.preset-score-btn');
+      presetBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+          triggerHaptic(15);
+          if (targetScoreInput) targetScoreInput.value = btn.getAttribute('data-value');
+        });
+      });
+
+      if (btnTargetScoreHeader) btnTargetScoreHeader.addEventListener('click', openTargetScoreModal);
+      if (btnTargetScoreMobile) btnTargetScoreMobile.addEventListener('click', openTargetScoreModal);
+      if (btnCancelTargetScore) btnCancelTargetScore.addEventListener('click', closeTargetScoreModal);
+      if (btnSaveTargetScore) btnSaveTargetScore.addEventListener('click', saveTargetScoreFromModal);
+
+      btnLeaderboard.addEventListener('click', () => { triggerHaptic(20); leaderboardModal.classList.remove('hidden'); });
+      btnCloseLeaderboard.addEventListener('click', () => leaderboardModal.classList.add('hidden'));
+      btnRules.addEventListener('click', () => { triggerHaptic(20); rulesModal.classList.remove('hidden'); });
+      btnCloseRules.addEventListener('click', () => rulesModal.classList.add('hidden'));
+      btnGotItRules.addEventListener('click', () => rulesModal.classList.add('hidden'));
+      btnRestartWin.addEventListener('click', () => { winModal.classList.add('hidden'); openNewGameModal(); });
+
+      btnSound.addEventListener('click', () => {
+        triggerHaptic(20);
+        sound.enabled = !sound.enabled;
+        btnSound.innerHTML = sound.enabled 
+          ? '<i data-lucide="volume-2" class="w-4 h-4 text-zinc-300"></i>'
+          : '<i data-lucide="volume-x" class="w-4 h-4 text-red-400"></i>';
+        lucide.createIcons();
+      });
+    };
+  </script>
+</body>
+</html>
