@@ -33,7 +33,6 @@
     }
     .font-display { font-family: 'Outfit', sans-serif; }
 
-    /* Banner per assenza di connessione */
     .offline-banner {
       background-color: #ef4444;
       color: white;
@@ -49,7 +48,6 @@
       transition: all 0.3s ease;
     }
 
-    /* 3D Dice Perspective and Minimal Poker Cube Styles */
     .dice-scene {
       perspective: 700px;
       width: 68px;
@@ -107,21 +105,15 @@
     }
 
     .dice-container.selected .cube-face {
-      border-color: #10b981;
+      border-color: #10b981; 
       background: radial-gradient(circle at 35% 35%, #064e3b 0%, #022c22 60%, #0d0c06 100%);
       box-shadow: 
         inset 0 3px 6px rgba(16, 185, 129, 0.7),
         inset 0 -4px 8px rgba(0, 0, 0, 0.9),
-        0 0 22px rgba(16, 185, 129, 0.4),
+        0 0 22px rgba(16, 185, 129, 0.4), 
         0 10px 25px rgba(0, 0, 0, 0.8);
     }
     .dice-container.selected { transform: translateY(-8px) scale(1.05); }
-
-    .dice-container.banked {
-      opacity: 0.45;
-      filter: grayscale(0.5);
-      cursor: not-allowed;
-    }
 
     @keyframes tumble {
       0% { transform: rotateX(0deg) rotateY(0deg) rotateZ(0deg); }
@@ -143,9 +135,7 @@
       85% { opacity: 1; transform: translate(-50%, 0) scale(1); }
       100% { opacity: 0; transform: translate(-50%, -20px) scale(0.9); }
     }
-    .toast-animate {
-      animation: toastFadeInOut 2.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-    }
+    .toast-animate { animation: toastFadeInOut 2.8s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
   </style>
 </head>
 <body class="min-h-screen flex flex-col justify-between overflow-x-hidden p-2 sm:p-4">
@@ -163,14 +153,29 @@
     </div>
   </div>
 
-  <!-- MODALE LOBBY STANZA ONLINE -->
+  <!-- MODALE LOBBY STANZA ONLINE & SELEZIONE MODALITA' -->
   <div id="roomModal" class="fixed inset-0 bg-zinc-950/95 backdrop-blur-md z-50 flex items-center justify-center p-4">
     <div class="bg-zinc-900 border border-zinc-700 rounded-3xl p-6 max-w-sm w-full shadow-2xl text-center">
       <div class="w-14 h-14 mx-auto mb-3 rounded-2xl bg-gradient-to-br from-emerald-400 to-teal-600 flex items-center justify-center shadow-lg shadow-emerald-500/25 text-zinc-950 font-black text-2xl font-display">♠</div>
       <h2 class="text-xl font-black text-white font-display mb-1">POKER DICE ONLINE</h2>
-      <p class="text-xs text-zinc-400 mb-5">Inserisci il tuo nome e il codice del tavolo per giocare</p>
+      <p class="text-xs text-zinc-400 mb-4">Scegli la modalità e accedi al tavolo</p>
       
       <div class="space-y-3 text-left">
+        <div>
+          <label class="text-[10px] uppercase font-bold text-zinc-400 block mb-1">Modalità di Gioco</label>
+          <div class="grid grid-cols-3 gap-2" role="group" aria-label="Seleziona modalità di gioco">
+            <button type="button" data-game-mode="normal" aria-pressed="true" class="game-mode-button rounded-xl border border-emerald-500 bg-emerald-500/15 px-2 py-2.5 text-xs font-bold text-emerald-300 transition">
+              Normale
+            </button>
+            <button type="button" data-game-mode="yahtzee" aria-pressed="false" class="game-mode-button rounded-xl border border-zinc-700 bg-zinc-950 px-2 py-2.5 text-xs font-bold text-zinc-400 transition">
+              Stile Yahtzee
+            </button>
+            <button type="button" data-game-mode="betting" aria-pressed="false" class="game-mode-button rounded-xl border border-zinc-700 bg-zinc-950 px-2 py-2.5 text-xs font-bold text-zinc-400 transition">
+              Con puntate
+            </button>
+          </div>
+          <p id="gameModeDescription" class="mt-1 text-[10px] text-zinc-500">Partita a punti con obiettivo personalizzabile.</p>
+        </div>
         <div>
           <label class="text-[10px] uppercase font-bold text-zinc-400 block mb-1">Il tuo Nome</label>
           <input id="inputPlayerName" type="text" maxlength="12" placeholder="Es. Maverick" class="w-full bg-zinc-950 border border-zinc-700 rounded-xl px-3 py-2 text-white font-semibold text-sm focus:outline-none focus:border-emerald-400" />
@@ -180,8 +185,23 @@
           <input id="inputRoomCode" type="text" placeholder="Es. pokerroom1" class="w-full bg-zinc-950 border border-zinc-700 rounded-xl px-3 py-2 text-white font-semibold text-sm focus:outline-none focus:border-emerald-400" />
         </div>
         <div id="containerTargetScore">
-          <label class="text-[10px] uppercase font-bold text-amber-400 block mb-1">Punteggio Obiettivo Partita</label>
+          <label class="text-[10px] uppercase font-bold text-amber-400 block mb-1">Punteggio Obiettivo (Modalità Normale)</label>
           <input id="inputTargetScore" type="number" step="500" min="1000" value="5000" placeholder="Es. 5000" class="w-full bg-zinc-950 border border-amber-500/60 rounded-xl px-3 py-2 text-amber-300 font-semibold text-sm focus:outline-none focus:border-amber-400" />
+        </div>
+        <div id="containerBetSettings" class="hidden grid grid-cols-3 gap-2">
+          <div>
+            <label for="inputStartingChips" class="text-[10px] uppercase font-bold text-amber-400 block mb-1">Fiches iniziali</label>
+            <input id="inputStartingChips" type="number" min="2" step="1" value="50" class="w-full bg-zinc-950 border border-amber-500/60 rounded-xl px-2 py-2 text-amber-300 font-semibold text-sm focus:outline-none focus:border-amber-400" />
+          </div>
+          <div>
+            <label for="inputSmallBet" class="text-[10px] uppercase font-bold text-cyan-400 block mb-1">Piccola</label>
+            <input id="inputSmallBet" type="number" min="1" step="1" value="2" class="w-full bg-zinc-950 border border-cyan-500/60 rounded-xl px-2 py-2 text-cyan-300 font-semibold text-sm focus:outline-none focus:border-cyan-400" />
+          </div>
+          <div>
+            <label for="inputBigBet" class="text-[10px] uppercase font-bold text-purple-400 block mb-1">Grande</label>
+            <input id="inputBigBet" type="number" min="1" step="1" value="4" class="w-full bg-zinc-950 border border-purple-500/60 rounded-xl px-2 py-2 text-purple-300 font-semibold text-sm focus:outline-none focus:border-purple-400" />
+          </div>
+          <p class="col-span-3 text-[10px] text-zinc-500">Poker Dice a tavolo scoperto · da 2 a 6 giocatori · ante 1 fiche</p>
         </div>
       </div>
 
@@ -189,7 +209,34 @@
     </div>
   </div>
 
-  <!-- MODALE MODIFICA GIOCATORI ATTUALI -->
+  <!-- MODALE AZIONI DI PUNTATA -->
+  <div id="bettingActionModal" class="fixed inset-0 bg-black/85 backdrop-blur-md z-[60] flex items-center justify-center p-4 hidden">
+    <div class="bg-zinc-900 border-2 border-amber-500/60 rounded-3xl p-5 max-w-md w-full shadow-2xl">
+      <div class="flex items-center justify-between border-b border-zinc-800 pb-3">
+        <div>
+          <h3 id="bettingModalTitle" class="text-base font-black text-amber-300 font-display">Puntata</h3>
+          <p id="bettingModalSubtitle" class="text-[11px] text-zinc-400"></p>
+        </div>
+        <span id="bettingPotDisplay" class="rounded-xl bg-amber-500/10 px-3 py-2 text-xs font-black text-amber-300">Piatto: 0</span>
+      </div>
+      <div class="grid grid-cols-2 gap-2 py-3 text-xs">
+        <div class="rounded-lg bg-zinc-950 p-2"><span class="text-zinc-500">La tua mano</span><strong id="bettingHandDisplay" class="block text-white"></strong></div>
+        <div class="rounded-lg bg-zinc-950 p-2"><span class="text-zinc-500">Le tue fiches</span><strong id="bettingStackDisplay" class="block text-emerald-300"></strong></div>
+        <div class="rounded-lg bg-zinc-950 p-2"><span class="text-zinc-500">Puntata da pareggiare</span><strong id="bettingToCallDisplay" class="block text-cyan-300"></strong></div>
+        <div class="rounded-lg bg-zinc-950 p-2"><span class="text-zinc-500">Limite del giro</span><strong id="bettingLimitDisplay" class="block text-purple-300"></strong></div>
+      </div>
+      <p id="bettingActionHint" class="mb-3 text-[11px] text-zinc-400"></p>
+      <div class="grid grid-cols-2 gap-2">
+        <button id="btnBetCheck" class="rounded-xl bg-zinc-700 py-3 text-xs font-bold text-white transition hover:bg-zinc-600">Parola</button>
+        <button id="btnBetOpen" class="rounded-xl bg-emerald-500 py-3 text-xs font-bold text-zinc-950 transition hover:bg-emerald-400">Punta</button>
+        <button id="btnBetCall" class="rounded-xl bg-cyan-600 py-3 text-xs font-bold text-white transition hover:bg-cyan-500">Vedi</button>
+        <button id="btnBetRaise" class="rounded-xl bg-purple-600 py-3 text-xs font-bold text-white transition hover:bg-purple-500">Rilancia</button>
+        <button id="btnBetFold" class="col-span-2 rounded-xl border border-red-800 bg-red-950/60 py-2.5 text-xs font-bold text-red-300 transition hover:bg-red-900/80">Lascia (Fold)</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODALE MODIFICA GIOCATORI -->
   <div id="editPlayersModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
     <div class="bg-zinc-900 border border-zinc-700 rounded-2xl p-5 max-w-sm w-full text-center">
       <div class="flex items-center gap-2 mb-2 text-emerald-400 justify-center">
@@ -206,7 +253,7 @@
     </div>
   </div>
 
-  <!-- MODALE SELEZIONE GIOCATORI NUOVA MANO -->
+  <!-- MODALE NUOVA MANO -->
   <div id="newGameModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
     <div class="bg-zinc-900 border border-zinc-700 rounded-2xl p-5 max-w-sm w-full text-center">
       <div class="flex items-center gap-2 mb-2 text-red-400 justify-center">
@@ -230,26 +277,63 @@
     </div>
   </div>
 
-  <!-- MODALE PUNTEGGIO OBIETTIVO -->
-  <div id="targetScoreModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
-    <div class="bg-zinc-900 border border-zinc-700 rounded-2xl p-5 max-w-xs w-full shadow-2xl">
-      <div class="flex items-center gap-2 mb-2 text-amber-400">
-        <i data-lucide="target" class="w-5 h-5"></i>
-        <h3 class="text-base font-bold text-amber-400 font-display">Punteggio Obiettivo</h3>
-      </div>
-      <p class="text-xs text-zinc-400 mb-3">Scegli o inserisci il punteggio necessario per vincere:</p>
-      
-      <div class="grid grid-cols-2 gap-2 mb-3">
-        <button type="button" class="preset-score-btn py-1.5 px-2 bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 rounded-xl text-xs font-bold text-amber-300 transition" data-value="2500">2.500 pt</button>
-        <button type="button" class="preset-score-btn py-1.5 px-2 bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 rounded-xl text-xs font-bold text-amber-300 transition" data-value="5000">5.000 pt</button>
-        <button type="button" class="preset-score-btn py-1.5 px-2 bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 rounded-xl text-xs font-bold text-amber-300 transition" data-value="10000">10.000 pt</button>
-        <button type="button" class="preset-score-btn py-1.5 px-2 bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 rounded-xl text-xs font-bold text-amber-300 transition" data-value="15000">15.000 pt</button>
+  <!-- MODALE TABELLONE YAHTZEE -->
+  <div id="yahtzeeScorecardModal" class="fixed inset-0 bg-black/85 backdrop-blur-md z-50 flex items-center justify-center p-3 hidden">
+    <div class="bg-zinc-900 border-2 border-emerald-500/60 rounded-3xl p-4 max-w-3xl w-full max-h-[90vh] flex flex-col shadow-2xl">
+      <div class="flex items-center justify-between pb-3 border-b border-zinc-800">
+        <div>
+          <h3 class="text-base font-black text-emerald-400 font-display flex items-center gap-1.5">
+            <i data-lucide="clipboard-list" class="w-5 h-5"></i> Registra mano · Tabella Punteggio
+          </h3>
+          <p class="text-[11px] text-zinc-400" id="yahtzeeModalSubtitle">Scegli una casella vuota da compilare</p>
+        </div>
+        <button id="btnCloseYahtzeeModal" aria-label="Chiudi tabella" class="text-zinc-400 hover:text-white p-1"><i data-lucide="x" class="w-5 h-5"></i></button>
       </div>
 
-      <input id="targetScoreInput" type="number" min="1000" step="500" class="w-full bg-zinc-950 border border-zinc-700 rounded-xl px-3 py-2 text-white font-semibold text-sm focus:outline-none focus:border-amber-400 mb-4" placeholder="Valore personalizzato" />
-      <div class="flex gap-2">
-        <button id="btnCancelTargetScore" class="flex-1 py-2.5 rounded-xl bg-zinc-800 text-zinc-300 font-bold text-xs">Annulla</button>
-        <button id="btnSaveTargetScore" class="flex-1 py-2.5 rounded-xl bg-amber-500 text-zinc-950 font-bold text-xs">Conferma</button>
+      <div class="overflow-y-auto py-3 flex-1 text-xs text-zinc-300">
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-3">
+          <section class="rounded-xl border border-amber-500/30 bg-zinc-950/60 p-2">
+            <h4 class="font-bold text-amber-400 mb-2 uppercase tracking-wider text-[10px]">1. Sezione superiore · Valori singoli</h4>
+            <div class="overflow-x-auto">
+              <table class="w-full min-w-[300px] text-left">
+                <thead class="text-[10px] uppercase text-zinc-500">
+                  <tr><th class="p-1.5">Casella</th><th class="p-1.5 text-right">Punti</th><th class="p-1.5 text-right">Compila</th></tr>
+                </thead>
+                <tbody id="yahtzeeUpperSlots" class="divide-y divide-zinc-800"></tbody>
+              </table>
+            </div>
+            <div class="mt-2 flex justify-between border-t border-zinc-800 pt-2 text-[10px]">
+              <span class="text-zinc-400">Totale sezione: <strong id="yahtzeeUpperSubtotal" class="text-white">0</strong> / 63</span>
+              <span id="yahtzeeUpperThreshold" class="font-bold text-amber-400">Bonus: 0 pt</span>
+            </div>
+          </section>
+
+          <section class="rounded-xl border border-cyan-500/30 bg-zinc-950/60 p-2">
+            <h4 class="font-bold text-cyan-400 mb-2 uppercase tracking-wider text-[10px]">2. Sezione inferiore · Combinazioni</h4>
+            <div class="overflow-x-auto">
+              <table class="w-full min-w-[300px] text-left">
+                <thead class="text-[10px] uppercase text-zinc-500">
+                  <tr><th class="p-1.5">Casella</th><th class="p-1.5 text-right">Punti</th><th class="p-1.5 text-right">Compila</th></tr>
+                </thead>
+                <tbody id="yahtzeeLowerSlots" class="divide-y divide-zinc-800"></tbody>
+              </table>
+            </div>
+          </section>
+        </div>
+
+        <section class="mt-3 rounded-xl border border-emerald-500/30 bg-zinc-950/60 p-2">
+          <h4 class="font-bold text-emerald-400 mb-2 uppercase tracking-wider text-[10px]">3. Totali e bonus</h4>
+          <div class="grid grid-cols-2 gap-2 text-[10px]">
+            <div class="flex justify-between rounded-lg bg-zinc-900 p-2"><span class="text-zinc-400">Totale superiore</span><strong id="yahtzeeUpperTotal" class="text-white">0 pt</strong></div>
+            <div class="flex justify-between rounded-lg bg-zinc-900 p-2"><span class="text-zinc-400">Bonus superiore</span><strong id="yahtzeeUpperBonusTotal" class="text-amber-400">0 pt</strong></div>
+            <div class="flex justify-between rounded-lg bg-zinc-900 p-2"><span class="text-zinc-400">Totale inferiore</span><strong id="yahtzeeLowerTotal" class="text-white">0 pt</strong></div>
+            <div class="flex justify-between rounded-lg bg-zinc-900 p-2"><span class="text-zinc-400">Bonus cinquine</span><strong id="yahtzeeBonusDisplay" class="text-amber-400">0 pt</strong></div>
+          </div>
+          <div class="mt-2 flex justify-between border-t border-zinc-800 pt-2 text-xs font-bold">
+            <span class="text-zinc-300">Punteggio totale</span>
+            <span id="yahtzeeGrandTotal" class="text-emerald-400 font-display">0 pt</span>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -257,9 +341,7 @@
   <!-- Header -->
   <header class="w-full max-w-5xl mx-auto py-2 flex items-center justify-between border-b border-zinc-800/80">
     <div class="flex items-center space-x-2.5">
-      <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-emerald-400 to-teal-600 flex items-center justify-center shadow-lg shadow-emerald-500/25 text-zinc-950 font-black text-xl font-display">
-      ♠
-      </div>
+      <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-emerald-400 to-teal-600 flex items-center justify-center shadow-lg shadow-emerald-500/25 text-zinc-950 font-black text-xl font-display">♠</div>
       <div>
         <h1 class="text-lg sm:text-xl font-black tracking-wider text-white font-display flex items-center gap-1.5">
           POKER DICE <button id="roomBadge" class="text-[10px] px-2 py-0.5 rounded-full bg-emerald-600/20 text-emerald-300 border border-emerald-500/50 hover:bg-emerald-500/30 transition">Tavolo: --</button>
@@ -273,17 +355,14 @@
         <i data-lucide="volume-2" class="w-4 h-4"></i>
       </button>
 
-      <button id="btnTargetScoreMobile" class="p-2 rounded-xl bg-zinc-900 border border-zinc-800 text-amber-400 sm:hidden flex items-center justify-center">
-        <i data-lucide="target" class="w-4 h-4"></i>
-      </button>
-      <button id="btnTargetScoreHeader" class="hidden sm:flex p-2 sm:px-3 sm:py-2 rounded-xl bg-zinc-900 border border-zinc-800 text-amber-400 text-xs font-semibold items-center gap-1">
-        <i data-lucide="target" class="w-4 h-4"></i>
-        <span id="targetScoreHeaderLabel" class="hidden sm:inline">5.000 pt</span>
+      <button id="btnOpenYahtzeeTable" class="hidden px-3 py-2 rounded-xl bg-emerald-600/20 border border-emerald-500/50 text-emerald-300 text-xs font-bold flex items-center gap-1.5 transition">
+        <i data-lucide="table" class="w-4 h-4"></i>
+        <span>Registra mano</span>
       </button>
 
       <button id="btnLeaderboard" class="p-2 sm:px-3 sm:py-2 rounded-xl bg-zinc-900 border border-zinc-800 text-emerald-300 text-xs font-semibold flex items-center gap-1">
         <i data-lucide="trophy" class="w-4 h-4 text-emerald-300"></i>
-        <span class="hidden sm:inline">Punteggio</span>
+        <span class="text-[9px] leading-tight text-left max-w-[72px]" id="leaderboardButtonLabel">Classifica</span>
       </button>
 
       <button id="btnRules" class="p-2 sm:px-3 sm:py-2 rounded-xl bg-zinc-900 border border-zinc-800 text-purple-300 text-xs font-semibold flex items-center gap-1">
@@ -306,7 +385,7 @@
     <!-- Current Turn Status -->
     <div class="p-3 sm:p-4 rounded-2xl bg-zinc-900/90 border border-emerald-500/30 flex justify-between items-center relative overflow-hidden">
       <div>
-        <span class="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider block">Punti Mano Selezionati</span>
+        <span class="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider block" id="turnScoreTitleLabel">Punti Mano Selezionati</span>
         <div class="text-2xl sm:text-3xl font-black text-emerald-400 font-display flex items-center gap-1.5">
           <span id="turnScoreTotal">0</span>
           <span id="pendingSelectionBadge" class="text-xs font-normal text-teal-400 hidden">(+0)</span>
@@ -334,52 +413,27 @@
       <div class="flex flex-wrap justify-center items-center gap-3 sm:gap-5 z-10 py-1">
         <div class="dice-container transition-all duration-200" data-index="0">
           <div class="dice-scene"><div class="cube" id="cube-0">
-            <div class="cube-face f9">9</div>
-            <div class="cube-face f10">10</div>
-            <div class="cube-face fj">J</div>
-            <div class="cube-face fq">Q</div>
-            <div class="cube-face fk">K</div>
-            <div class="cube-face fa">A</div>
+            <div class="cube-face f9">9</div><div class="cube-face f10">10</div><div class="cube-face fj">J</div><div class="cube-face fq">Q</div><div class="cube-face fk">K</div><div class="cube-face fa">A</div>
           </div></div><div class="dice-sub text-[9px] text-center font-bold text-zinc-500 mt-1 uppercase">Libero</div>
         </div>
         <div class="dice-container transition-all duration-200" data-index="1">
           <div class="dice-scene"><div class="cube" id="cube-1">
-            <div class="cube-face f9">9</div>
-            <div class="cube-face f10">10</div>
-            <div class="cube-face fj">J</div>
-            <div class="cube-face fq">Q</div>
-            <div class="cube-face fk">K</div>
-            <div class="cube-face fa">A</div>
+            <div class="cube-face f9">9</div><div class="cube-face f10">10</div><div class="cube-face fj">J</div><div class="cube-face fq">Q</div><div class="cube-face fk">K</div><div class="cube-face fa">A</div>
           </div></div><div class="dice-sub text-[9px] text-center font-bold text-zinc-500 mt-1 uppercase">Libero</div>
         </div>
         <div class="dice-container transition-all duration-200" data-index="2">
           <div class="dice-scene"><div class="cube" id="cube-2">
-            <div class="cube-face f9">9</div>
-            <div class="cube-face f10">10</div>
-            <div class="cube-face fj">J</div>
-            <div class="cube-face fq">Q</div>
-            <div class="cube-face fk">K</div>
-            <div class="cube-face fa">A</div>
+            <div class="cube-face f9">9</div><div class="cube-face f10">10</div><div class="cube-face fj">J</div><div class="cube-face fq">Q</div><div class="cube-face fk">K</div><div class="cube-face fa">A</div>
           </div></div><div class="dice-sub text-[9px] text-center font-bold text-zinc-500 mt-1 uppercase">Libero</div>
         </div>
         <div class="dice-container transition-all duration-200" data-index="3">
           <div class="dice-scene"><div class="cube" id="cube-3">
-            <div class="cube-face f9">9</div>
-            <div class="cube-face f10">10</div>
-            <div class="cube-face fj">J</div>
-            <div class="cube-face fq">Q</div>
-            <div class="cube-face fk">K</div>
-            <div class="cube-face fa">A</div>
+            <div class="cube-face f9">9</div><div class="cube-face f10">10</div><div class="cube-face fj">J</div><div class="cube-face fq">Q</div><div class="cube-face fk">K</div><div class="cube-face fa">A</div>
           </div></div><div class="dice-sub text-[9px] text-center font-bold text-zinc-500 mt-1 uppercase">Libero</div>
         </div>
         <div class="dice-container transition-all duration-200" data-index="4">
           <div class="dice-scene"><div class="cube" id="cube-4">
-            <div class="cube-face f9">9</div>
-            <div class="cube-face f10">10</div>
-            <div class="cube-face fj">J</div>
-            <div class="cube-face fq">Q</div>
-            <div class="cube-face fk">K</div>
-            <div class="cube-face fa">A</div>
+            <div class="cube-face f9">9</div><div class="cube-face f10">10</div><div class="cube-face fj">J</div><div class="cube-face fq">Q</div><div class="cube-face fk">K</div><div class="cube-face fa">A</div>
           </div></div><div class="dice-sub text-[9px] text-center font-bold text-zinc-500 mt-1 uppercase">Libero</div>
         </div>
       </div>
@@ -457,45 +511,81 @@
 
   <!-- RULES MODAL -->
   <div id="rulesModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
-    <div class="bg-zinc-900 border border-zinc-700 rounded-2xl p-5 max-w-md w-full max-h-[80vh] flex flex-col">
+    <div class="bg-zinc-900 border border-zinc-700 rounded-2xl p-5 max-w-lg w-full max-h-[85vh] flex flex-col">
       <div class="flex items-center justify-between pb-2 border-b border-zinc-800">
         <div class="flex items-center gap-2">
           <i data-lucide="book-open" class="w-5 h-5 text-purple-300"></i>
-          <h3 class="text-base font-bold text-purple-300 font-display">Regole Poker Dice</h3>
+          <h3 class="text-base font-bold text-purple-300 font-display">Regolamento Poker Dice</h3>
         </div>
         <button id="btnCloseRules" class="text-zinc-400 hover:text-white"><i data-lucide="x" class="w-5 h-5"></i></button>
       </div>
-      <div class="overflow-y-auto space-y-3 py-3 text-xs text-zinc-300">
-        <p>• <strong>Dadi:</strong> 5 dadi con i simboli: Asso (A), Re (K), Donna (Q), Fante (J), 10 e 9.</p>
-        <p>• <strong>Svolgimento:</strong> Fino a 3 lanci per turno. Scegli tu quali dadi bloccare cliccandoci sopra e quali rilanciare per comporre la tua mano.</p>
-        <p>• <strong>Gerarchia e Punteggi delle Mani:</strong></p>
-        <p class="pl-2">1. <strong>Cinque di un tipo</strong> (Five of a Kind) - <strong>500 pt</strong></p>
-        <p class="pl-2">2. <strong>Quattro di un tipo / Poker</strong> (Four of a Kind) - <strong>350 pt</strong></p>
-        <p class="pl-2">3. <strong>Full</strong> (Full House - Tris e Coppia) - <strong>250 pt</strong></p>
-        <p class="pl-2">4. <strong>Scala</strong> (Straight - 9-10-J-Q-K o 10-J-Q-K-A) - <strong>200 pt</strong></p>
-        <p class="pl-2">5. <strong>Tris</strong> (Three of a Kind) - <strong>150 pt</strong></p>
-        <p class="pl-2">6. <strong>Doppia Coppia</strong> (Two Pair) - <strong>100 pt</strong></p>
-        <p class="pl-2">7. <strong>Coppia</strong> (One Pair) - <strong>50 pt</strong></p>
-        <p class="pl-2">8. <strong>Carta alta / Nulla</strong> (Bust) - <strong>10 pt</strong></p>
+      <div class="overflow-y-auto space-y-3 py-3 text-xs text-zinc-300 pr-1">
+        <div id="yahtzeeRulesSection" class="space-y-3">
+        <p class="font-semibold text-white">Preparazione e valori</p>
+        <p>Si usano 5 dadi a sei facce: 9, 10, J, Q, K e A. Per i calcoli valgono rispettivamente <strong>9, 10, 11, 12, 13 e 14 punti</strong>. Ogni giocatore ha una tabella con 13 caselle: 6 superiori e 7 inferiori.</p>
+
+        <p class="font-semibold text-white">Turno e lanci</p>
+        <p>Al proprio turno si lanciano tutti e 5 i dadi. Si hanno fino a <strong>3 lanci complessivi</strong>: dopo ogni lancio si possono bloccare i dadi da conservare e rilanciare gli altri. Ci si può fermare prima. Al termine si deve compilare una casella ancora vuota; se il risultato non soddisfa la combinazione scelta, in quella casella si segna 0. Dopo la compilazione il turno passa al giocatore successivo.</p>
+
+        <p class="font-semibold text-amber-300">1. Sezione superiore · valori singoli</p>
+        <p>In ciascuna casella si sommano solo i dadi del valore indicato: 9, 10, J, Q, K oppure A. Gli altri dadi non contano. Se il totale delle sei caselle superiori raggiunge almeno <strong>63 punti</strong>, si aggiungono <strong>35 punti bonus</strong>.</p>
+
+        <p class="font-semibold text-cyan-300">2. Sezione inferiore · combinazioni</p>
+        <ul class="list-disc pl-4 space-y-1">
+          <li><strong>Tris:</strong> almeno 3 dadi uguali; somma di tutti e 5 i dadi.</li>
+          <li><strong>Poker (4 di un tipo):</strong> almeno 4 dadi uguali; somma di tutti e 5 i dadi.</li>
+          <li><strong>Full:</strong> 3 dadi uguali e una coppia; 25 punti fissi.</li>
+          <li><strong>Piccola scala:</strong> almeno 4 valori consecutivi (9-10-J-Q, 10-J-Q-K oppure J-Q-K-A); 30 punti fissi.</li>
+          <li><strong>Grande scala:</strong> 5 valori consecutivi (9-10-J-Q-K oppure 10-J-Q-K-A); 40 punti fissi.</li>
+          <li><strong>Poker Dice / cinquina:</strong> 5 dadi uguali; 50 punti fissi.</li>
+          <li><strong>Chance:</strong> nessun requisito; somma di tutti e 5 i dadi.</li>
+        </ul>
+
+        <p class="font-semibold text-white">Cinquine successive (jolly)</p>
+        <p>Se la casella Poker Dice contiene già 50 punti, ogni nuova cinquina assegna <strong>100 punti bonus</strong>. Se la casella superiore del valore ottenuto è ancora vuota, la cinquina va obbligatoriamente inserita lì. Se è già compilata, si può scegliere una casella inferiore libera e ottenere il relativo punteggio massimo, anche senza la combinazione richiesta. Se tutte le caselle inferiori sono piene, si deve scegliere una casella superiore vuota e segnare 0.</p>
+
+        <p class="font-semibold text-white">Fine partita</p>
+        <p>La partita termina quando ogni giocatore ha compilato tutte le 13 caselle. Vince chi totalizza più punti, sommando le due sezioni, l'eventuale bonus superiore da 35 e tutti i bonus da 100 punti.</p>
+        </div>
+
+        <section id="bettingRulesSection" class="hidden space-y-2 border-t border-zinc-700 pt-3">
+          <p class="font-semibold text-amber-300">Poker Dice a tavolo scoperto · con puntate</p>
+          <p>Da 2 a 6 giocatori. Ogni partecipante inizia con il bankroll scelto al tavolo (predefinito 50 fiches); a inizio mano chi ha fiches versa 1 fiche di ante. Chi non può pagare salta la mano. Il mazziere ruota in senso orario.</p>
+          <p><strong>Valore delle mani, dalla più alta:</strong></p>
+          <ol class="list-decimal pl-4 space-y-1">
+            <li><strong>Poker Dice:</strong> cinque dadi uguali.</li>
+            <li><strong>Poker:</strong> quattro dadi uguali e un kicker.</li>
+            <li><strong>Full:</strong> tris e coppia.</li>
+            <li><strong>Grande scala:</strong> 9-10-J-Q-K oppure 10-J-Q-K-A.</li>
+            <li><strong>Tris:</strong> tre dadi uguali e due kicker.</li>
+            <li><strong>Doppia coppia:</strong> due coppie e un kicker.</li>
+            <li><strong>Coppia:</strong> una coppia e tre kicker.</li>
+            <li><strong>Carta alta:</strong> cinque valori diversi che non formano una scala.</li>
+          </ol>
+          <p>I valori sono ordinati 9, 10, J, Q, K, A; non esiste il colore. In caso di parità decide prima il valore della combinazione, poi il kicker (dado spaiato); mani identiche dividono il piatto.</p>
+          <p>Dopo ogni lancio tutti vedono i dadi. Nel secondo e terzo lancio puoi bloccare dadi e rilanciare gli altri; al terzo puoi sbloccare anche dadi tenuti prima. I giocatori con ante effettuata lanciano in ordine partendo dopo il mazziere.</p>
+          <p><strong>Puntate a limite fisso:</strong> nei primi due giri puntata e rilancio valgono la puntata piccola (predefinita 2); nel giro finale valgono la grande (predefinita 4). Si può fare check solo senza puntate, vedere, rilanciare (massimo 3 rilanci per giro) o foldare. Chi folda perde quanto già messo nel piatto.</p>
+          <p>Dopo il terzo giro si confrontano le mani dei giocatori rimasti e il vincitore prende il piatto. In caso di split pot, le fiches indivisibili vanno al vincitore più vicino in senso orario dal mazziere. Chi non può pagare un’ante salta la mano; vince l’ultimo giocatore con fiches.</p>
+        </section>
       </div>
       <button id="btnGotItRules" class="w-full py-2.5 rounded-xl bg-purple-300 text-zinc-950 font-bold text-xs mt-2">Chiudi</button>
     </div>
   </div>
 
   <!-- LEADERBOARD MODAL -->
-  <div id="leaderboardModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
-    <div class="bg-zinc-900 border border-zinc-700 rounded-2xl p-5 max-w-sm w-full">
+  <div id="leaderboardModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-3 hidden">
+    <div class="bg-zinc-900 border border-zinc-700 rounded-2xl p-5 max-w-3xl w-full max-h-[90vh] flex flex-col">
       <div class="flex items-center justify-between pb-2 border-b border-zinc-800 mb-3">
         <div class="flex items-center gap-2">
           <i data-lucide="trophy" class="w-5 h-5 text-emerald-300"></i>
           <div>
-            <h3 class="text-base font-bold text-emerald-300 font-display">Punteggio Tavolo</h3>
+            <h3 id="leaderboardTitle" class="text-base font-bold text-emerald-300 font-display">Classifica</h3>
             <p id="leaderboardTargetLabel" class="text-[10px] text-amber-400 font-semibold"></p>
           </div>
         </div>
         <button id="btnCloseLeaderboard"><i data-lucide="x" class="w-5 h-5"></i></button>
       </div>
-      <div id="leaderboardContainer" class="space-y-2"></div>
+      <div id="leaderboardContainer" class="space-y-3 overflow-y-auto"></div>
     </div>
   </div>
 
@@ -503,8 +593,7 @@
     function setCookie(name, value, days = 30) {
       const d = new Date();
       d.setTime(d.getTime() + (days * 24 * 60 * 60 * 1000));
-      const expires = "expires=" + d.toUTCString();
-      document.cookie = `${name}=${encodeURIComponent(value)};${expires};path=/;SameSite=Lax`;
+      document.cookie = `${name}=${encodeURIComponent(value)};expires=${d.toUTCString()};path=/;SameSite=Lax`;
     }
 
     function eraseCookie(name) {
@@ -523,6 +612,7 @@
     }
 
     const POKER_FACES = { 1: '9', 2: '10', 3: 'J', 4: 'Q', 5: 'K', 6: 'A' };
+    const DICE_NUMERIC_VALUES = { 1: 9, 2: 10, 3: 11, 4: 12, 5: 13, 6: 14 };
 
     function getRandomDiceRoll() {
       const array = new Uint32Array(1);
@@ -560,8 +650,11 @@
       else banner.classList.add('hidden');
     }
 
-    function saveStateToCloud() {
+    function saveStateToCloud(eventMsg = null) {
       if (!roomCode) return;
+      if (eventMsg) {
+        GameState.lastEvent = { id: Math.random().toString(36).substring(2, 9), msg: eventMsg };
+      }
       writeQueue.push({ roomCode: roomCode, statePayload: JSON.parse(JSON.stringify(GameState)) });
       if (navigator.onLine) {
         syncWriteQueue().catch(e => console.error("Errore sync:", e));
@@ -580,12 +673,8 @@
         try {
           const { error } = await supabaseClient.from('rooms').update({ state: item.statePayload }).eq('code', item.roomCode);
           if (!error) writeQueue.shift();
-          else {
-            await new Promise(r => setTimeout(r, 2000));
-          }
-        } catch (e) {
-          break;
-        }
+          else await new Promise(r => setTimeout(r, 2000));
+        } catch (e) { break; }
       }
       isProcessingQueue = false;
     }
@@ -707,12 +796,16 @@
 
     let TARGET_SCORE = 5000;
     const GameState = {
+      gameMode: 'normal', // 'normal', 'yahtzee' o 'betting'
       targetScore: 5000,
       numPlayers: 1,
       activePlayer: 1,
       playerIds: {},
       playerNames: {},
       scores: {},
+      yahtzeeScorecards: {}, // Per ogni giocatore, memorizza lo stato delle 13 caselle
+      yahtzeeBonuses: {},     // Per i bonus multipli da 100 pt
+      betState: null,
       round: 1,
       rollsLeft: 3,
       phase: 'ready',
@@ -723,7 +816,6 @@
         { value: 4, status: 'free' },
         { value: 3, status: 'free' },
       ],
-      turnAccumulatedScore: 0,
       logs: [],
       chatLogs: [],
       lastEvent: null
@@ -750,13 +842,6 @@
       return GameState.playerIds[GameState.activePlayer] === myPlayerId;
     }
 
-    function getMyPlayerName() {
-      for (let i = 1; i <= GameState.numPlayers; i++) {
-        if (GameState.playerIds[i] === myPlayerId) return GameState.playerNames[i];
-      }
-      return getCookie("poker_dice_player_name") || "Giocatore";
-    }
-
     function getPlayerName(id) {
       return GameState.playerNames[id] || `Giocatore ${id}`;
     }
@@ -774,14 +859,11 @@
       return counts;
     }
 
-    // -------------------------------------------------------------
-    // LOGICA DI VALUTAZIONE DINAMICA E CORRETTA (DA 1 A 5 DADI)
-    // -------------------------------------------------------------
+    // Calcolo per modalità Normale
     function evaluatePokerHand(values) {
       if (!values || values.length === 0) {
         return { score: 0, name: "Nessun dado selezionato", desc: "Seleziona i dadi per comporre la combinazione" };
       }
-
       const countsObj = getCounts(values);
       const counts = Object.values(countsObj).sort((a, b) => b - a);
       const sortedVals = [...values].sort((a, b) => a - b);
@@ -817,13 +899,103 @@
         const val = Number(Object.keys(countsObj).find(k => countsObj[k] >= 2));
         return { score: 50, name: "One Pair (Coppia)", desc: `Coppia di ${POKER_FACES[val]}` };
       }
-
       return { score: 10, name: "Carta Alta / Nulla", desc: `Nessuna combinazione valida (${values.map(v => POKER_FACES[v]).join(', ')})` };
+    }
+
+    function evaluateBettingHand(values) {
+      const counts = getCounts(values);
+      const groups = Object.keys(counts)
+        .map(Number)
+        .filter(value => counts[value] > 0)
+        .sort((a, b) => counts[b] - counts[a] || b - a);
+      const sorted = [...values].sort((a, b) => a - b);
+      const isStraight = values.length === 5 &&
+        (sorted.join(',') === '1,2,3,4,5' || sorted.join(',') === '2,3,4,5,6');
+      const faceName = value => POKER_FACES[value];
+      let rank;
+      let tiebreak;
+
+      if (groups.length === 1 && counts[groups[0]] === 5) {
+        rank = 8; tiebreak = [groups[0]];
+      } else if (groups.length === 2 && counts[groups[0]] === 4) {
+        rank = 7; tiebreak = [groups[0], groups[1]];
+      } else if (groups.length === 2 && counts[groups[0]] === 3 && counts[groups[1]] === 2) {
+        rank = 6; tiebreak = [groups[0], groups[1]];
+      } else if (isStraight) {
+        rank = 5; tiebreak = [sorted[4]];
+      } else if (groups.length === 3 && counts[groups[0]] === 3) {
+        rank = 4; tiebreak = [groups[0], ...groups.slice(1).sort((a, b) => b - a)];
+      } else if (groups.length === 3 && counts[groups[0]] === 2 && counts[groups[1]] === 2) {
+        const pairs = groups.filter(value => counts[value] === 2).sort((a, b) => b - a);
+        const kicker = groups.find(value => counts[value] === 1);
+        rank = 3; tiebreak = [...pairs, kicker];
+      } else if (groups.length === 4 && counts[groups[0]] === 2) {
+        rank = 2; tiebreak = [groups[0], ...groups.slice(1).sort((a, b) => b - a)];
+      } else {
+        rank = 1; tiebreak = [...values].sort((a, b) => b - a);
+      }
+
+      const names = {
+        8: 'Poker Dice (cinquina)',
+        7: 'Poker (quadruplo)',
+        6: 'Full',
+        5: sorted[4] === 6 ? 'Grande scala alta' : 'Grande scala bassa',
+        4: 'Tris',
+        3: 'Doppia coppia',
+        2: 'Coppia',
+        1: 'Carta alta'
+      };
+      const detail = rank === 5 ? '' : ` di ${tiebreak.map(faceName).join(' · ')}`;
+      return { rank, tiebreak, name: names[rank], detail, label: `${names[rank]}${detail}` };
+    }
+
+    function compareBettingHands(first, second) {
+      if (first.rank !== second.rank) return first.rank - second.rank;
+      const length = Math.max(first.tiebreak.length, second.tiebreak.length);
+      for (let index = 0; index < length; index++) {
+        const difference = (first.tiebreak[index] || 0) - (second.tiebreak[index] || 0);
+        if (difference) return difference;
+      }
+      return 0;
+    }
+
+    // Calcolo punteggio potenziale per le singole caselle Yahtzee con i 5 dadi attuali
+    function calculateYahtzeeSlotScore(slotKey, diceValues) {
+      const counts = getCounts(diceValues);
+      const sumAll = diceValues.reduce((acc, v) => acc + DICE_NUMERIC_VALUES[v], 0);
+
+      if (slotKey.startsWith('upper_')) {
+        const faceTarget = parseInt(slotKey.replace('upper_', ''));
+        return diceValues.filter(v => v === faceTarget).reduce((acc, v) => acc + DICE_NUMERIC_VALUES[v], 0);
+      }
+
+      const valsCountArr = Object.values(counts).sort((a, b) => b - a);
+      const sortedVals = [...diceValues].sort((a, b) => a - b);
+
+      switch (slotKey) {
+        case 'tris':
+          return valsCountArr[0] >= 3 ? sumAll : 0;
+        case 'poker':
+          return valsCountArr[0] >= 4 ? sumAll : 0;
+        case 'full':
+          return (valsCountArr[0] === 3 && valsCountArr[1] === 2) ? 25 : 0;
+        case 'small_straight':
+          const isSmall = (sortedVals.toString().includes("1,2,3,4") || sortedVals.toString().includes("2,3,4,5") || sortedVals.toString().includes("3,4,5,6"));
+          return isSmall ? 30 : 0;
+        case 'large_straight':
+          const isLarge = (sortedVals.toString() === "1,2,3,4,5" || sortedVals.toString() === "2,3,4,5,6");
+          return isLarge ? 40 : 0;
+        case 'yahtzee':
+          return valsCountArr[0] === 5 ? 50 : 0;
+        case 'chance':
+          return sumAll;
+        default:
+          return 0;
+      }
     }
 
     const cubeElements = [0,1,2,3,4].map(i => document.getElementById(`cube-${i}`));
     const diceContainers = document.querySelectorAll('.dice-container');
-    const actionButtons = document.getElementById('actionButtons');
     const btnRoll = document.getElementById('btnRoll');
     const btnRollText = document.getElementById('btnRollText');
     const btnBank = document.getElementById('btnBank');
@@ -835,6 +1007,8 @@
     const btnCloseRules = document.getElementById('btnCloseRules');
     const rulesModal = document.getElementById('rulesModal');
     const btnLeaderboard = document.getElementById('btnLeaderboard');
+    const leaderboardButtonLabel = document.getElementById('leaderboardButtonLabel');
+    const leaderboardTitle = document.getElementById('leaderboardTitle');
     const btnCloseLeaderboard = document.getElementById('btnCloseLeaderboard');
     const leaderboardModal = document.getElementById('leaderboardModal');
     const leaderboardContainer = document.getElementById('leaderboardContainer');
@@ -845,6 +1019,7 @@
     const btnRestartWin = document.getElementById('btnRestartWin');
     const playersContainer = document.getElementById('playersContainer');
     const turnScoreTotalEl = document.getElementById('turnScoreTotal');
+    const turnScoreTitleLabel = document.getElementById('turnScoreTitleLabel');
     const availableRollsCountEl = document.getElementById('availableRollsCount');
     const statusMessageEl = document.getElementById('statusMessage');
     const selectionPillEl = document.getElementById('selectionPill');
@@ -852,11 +1027,21 @@
     const roundCounterEl = document.getElementById('roundCounter');
 
     const roomModal = document.getElementById('roomModal');
+    const gameModeButtons = document.querySelectorAll('[data-game-mode]');
+    const gameModeDescription = document.getElementById('gameModeDescription');
+    let selectedGameMode = ['yahtzee', 'betting'].includes(localStorage.getItem('poker_dice_game_mode'))
+      ? localStorage.getItem('poker_dice_game_mode')
+      : 'normal';
     const inputPlayerName = document.getElementById('inputPlayerName');
     const inputRoomCode = document.getElementById('inputRoomCode');
     const btnJoinRoom = document.getElementById('btnJoinRoom');
     const roomBadge = document.getElementById('roomBadge');
+    const containerTargetScore = document.getElementById('containerTargetScore');
     const inputTargetScore = document.getElementById('inputTargetScore');
+    const containerBetSettings = document.getElementById('containerBetSettings');
+    const inputStartingChips = document.getElementById('inputStartingChips');
+    const inputSmallBet = document.getElementById('inputSmallBet');
+    const inputBigBet = document.getElementById('inputBigBet');
     const newGameModal = document.getElementById('newGameModal');
     const playerSelectList = document.getElementById('playerSelectList');
     const btnCancelNewGame = document.getElementById('btnCancelNewGame');
@@ -868,40 +1053,67 @@
     const btnCancelEditPlayers = document.getElementById('btnCancelEditPlayers');
     const btnConfirmEditPlayers = document.getElementById('btnConfirmEditPlayers');
 
-    const btnTargetScoreHeader = document.getElementById('btnTargetScoreHeader');
-    const btnTargetScoreMobile = document.getElementById('btnTargetScoreMobile');
-    const targetScoreHeaderLabel = document.getElementById('targetScoreHeaderLabel');
-    const targetScoreModal = document.getElementById('targetScoreModal');
-    const targetScoreInput = document.getElementById('targetScoreInput');
-    const btnCancelTargetScore = document.getElementById('btnCancelTargetScore');
-    const btnSaveTargetScore = document.getElementById('btnSaveTargetScore');
+    const btnOpenYahtzeeTable = document.getElementById('btnOpenYahtzeeTable');
+    const yahtzeeScorecardModal = document.getElementById('yahtzeeScorecardModal');
+    const btnCloseYahtzeeModal = document.getElementById('btnCloseYahtzeeModal');
+    const yahtzeeUpperSlots = document.getElementById('yahtzeeUpperSlots');
+    const yahtzeeLowerSlots = document.getElementById('yahtzeeLowerSlots');
+    const yahtzeeModalSubtitle = document.getElementById('yahtzeeModalSubtitle');
+    const yahtzeeBonusDisplay = document.getElementById('yahtzeeBonusDisplay');
+    const yahtzeeUpperSubtotal = document.getElementById('yahtzeeUpperSubtotal');
+    const yahtzeeUpperThreshold = document.getElementById('yahtzeeUpperThreshold');
+    const yahtzeeUpperTotal = document.getElementById('yahtzeeUpperTotal');
+    const yahtzeeUpperBonusTotal = document.getElementById('yahtzeeUpperBonusTotal');
+    const yahtzeeLowerTotal = document.getElementById('yahtzeeLowerTotal');
+    const yahtzeeGrandTotal = document.getElementById('yahtzeeGrandTotal');
+
+    const bettingActionModal = document.getElementById('bettingActionModal');
+    const bettingModalTitle = document.getElementById('bettingModalTitle');
+    const bettingModalSubtitle = document.getElementById('bettingModalSubtitle');
+    const bettingPotDisplay = document.getElementById('bettingPotDisplay');
+    const bettingHandDisplay = document.getElementById('bettingHandDisplay');
+    const bettingStackDisplay = document.getElementById('bettingStackDisplay');
+    const bettingToCallDisplay = document.getElementById('bettingToCallDisplay');
+    const bettingLimitDisplay = document.getElementById('bettingLimitDisplay');
+    const bettingActionHint = document.getElementById('bettingActionHint');
+    const btnBetCheck = document.getElementById('btnBetCheck');
+    const btnBetOpen = document.getElementById('btnBetOpen');
+    const btnBetCall = document.getElementById('btnBetCall');
+    const btnBetRaise = document.getElementById('btnBetRaise');
+    const btnBetFold = document.getElementById('btnBetFold');
+    const bettingRulesSection = document.getElementById('bettingRulesSection');
+    const yahtzeeRulesSection = document.getElementById('yahtzeeRulesSection');
 
     const chatLogContainer = document.getElementById('chatLogContainer');
     const chatForm = document.getElementById('chatForm');
     const chatInput = document.getElementById('chatInput');
 
-    function openTargetScoreModal() {
-      triggerHaptic(20);
-      if (targetScoreInput) targetScoreInput.value = GameState.targetScore || TARGET_SCORE;
-      if (targetScoreModal) targetScoreModal.classList.remove('hidden');
+    function setSelectedGameMode(mode) {
+      selectedGameMode = ['yahtzee', 'betting'].includes(mode) ? mode : 'normal';
+      gameModeButtons.forEach(button => {
+        const isSelected = button.dataset.gameMode === selectedGameMode;
+        button.setAttribute('aria-pressed', String(isSelected));
+        button.className = `game-mode-button rounded-xl border px-2 py-2.5 text-xs font-bold transition ${
+          isSelected
+            ? 'border-emerald-500 bg-emerald-500/15 text-emerald-300'
+            : 'border-zinc-700 bg-zinc-950 text-zinc-400 hover:border-zinc-500'
+        }`;
+      });
+      containerTargetScore.classList.toggle('hidden', selectedGameMode !== 'normal');
+      containerBetSettings.classList.toggle('hidden', selectedGameMode !== 'betting');
+      if (selectedGameMode === 'yahtzee') {
+        gameModeDescription.textContent = '13 caselle per giocatore, 3 lanci per turno e tabella segnapunti.';
+      } else if (selectedGameMode === 'betting') {
+        gameModeDescription.textContent = 'Poker a dadi scoperti: bankroll, ante, rilanci e piatto comune.';
+      } else {
+        gameModeDescription.textContent = 'Partita a punti con obiettivo personalizzabile.';
+      }
     }
 
-    function closeTargetScoreModal() {
-      triggerHaptic(20);
-      if (targetScoreModal) targetScoreModal.classList.add('hidden');
-    }
-
-    function saveTargetScoreFromModal() {
-      triggerHaptic(25);
-      const val = parseInt(targetScoreInput.value);
-      if (isNaN(val) || val < 1000) { alert("Inserisci un punteggio valido (minimo 1000)!"); return; }
-      GameState.targetScore = val;
-      TARGET_SCORE = val;
-      addLog(`🎯 Obiettivo del tavolo impostato a ${val.toLocaleString('it-IT')} pt`, true);
-      closeTargetScoreModal();
-      updateUI();
-      saveStateToCloud();
-    }
+    gameModeButtons.forEach(button => {
+      button.addEventListener('click', () => setSelectedGameMode(button.dataset.gameMode));
+    });
+    setSelectedGameMode(selectedGameMode);
 
     function openEditPlayersModal() {
       editPlayerSelectList.innerHTML = '';
@@ -940,7 +1152,7 @@
       if (!logContainer) return;
       logContainer.innerHTML = '';
       if (!GameState.logs || GameState.logs.length === 0) {
-        logContainer.innerHTML = `<p class="text-zinc-500 italic">Pronti al tavolo. Obiettivo ${(GameState.targetScore || TARGET_SCORE).toLocaleString('it-IT')} punti!</p>`;
+        logContainer.innerHTML = `<p class="text-zinc-500 italic">Pronti al tavolo.</p>`;
         return;
       }
       GameState.logs.forEach(item => {
@@ -955,7 +1167,7 @@
       if (!chatLogContainer) return;
       chatLogContainer.innerHTML = '';
       if (!GameState.chatLogs || GameState.chatLogs.length === 0) {
-        chatLogContainer.innerHTML = `<p class="text-zinc-500 italic text-[11px]">Chat attiva. Scrivi un messaggio ai giocatori!</p>`;
+        chatLogContainer.innerHTML = `<p class="text-zinc-500 italic text-[11px]">Chat attiva.</p>`;
         return;
       }
       GameState.chatLogs.forEach(c => {
@@ -978,8 +1190,7 @@
         e.preventDefault();
         const msg = chatInput.value.trim();
         if (!msg || !roomCode) return;
-
-        const senderName = getMyPlayerName();
+        const senderName = GameState.playerNames[Object.keys(GameState.playerIds).find(k => GameState.playerIds[k] === myPlayerId)] || "Giocatore";
         const timeStr = new Date().toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' });
         
         if (!GameState.chatLogs) GameState.chatLogs = [];
@@ -991,6 +1202,22 @@
         saveStateToCloud();
       });
     }
+
+    const YAHTZEE_SLOTS_DEF = {
+      upper_1: { name: 'Casella dei 9 (Somma 9)', type: 'upper' },
+      upper_2: { name: 'Casella dei 10 (Somma 10)', type: 'upper' },
+      upper_3: { name: 'Casella dei J (Somma 11)', type: 'upper' },
+      upper_4: { name: 'Casella delle Q (Somma 12)', type: 'upper' },
+      upper_5: { name: 'Casella dei K (Somma 13)', type: 'upper' },
+      upper_6: { name: 'Casella degli A (Somma 14)', type: 'upper' },
+      tris: { name: 'Tris (Somma dadi)', type: 'lower' },
+      poker: { name: 'Poker (Somma dadi)', type: 'lower' },
+      full: { name: 'Full House (25 pt)', type: 'lower' },
+      small_straight: { name: 'Piccola Scala (30 pt)', type: 'lower' },
+      large_straight: { name: 'Grande Scala (40 pt)', type: 'lower' },
+      yahtzee: { name: 'Poker Dice / Yahtzee (50 pt)', type: 'lower' },
+      chance: { name: 'Chance / Salvataggio (Somma)', type: 'lower' }
+    };
 
     function initScoreboard() {
       if (!playersContainer) return;
@@ -1012,6 +1239,7 @@
             <span class="text-lg sm:text-xl font-extrabold text-white font-display" id="scoreP${i}">0</span>
             <span class="text-[9px] text-zinc-400" id="subP${i}">pt</span>
           </div>
+          <p id="handP${i}" class="hidden mt-1 truncate text-[9px] font-semibold text-cyan-300"></p>
           <div class="w-full bg-zinc-800 rounded-full h-1 mt-1 overflow-hidden">
             <div id="barP${i}" class="h-full rounded-full transition-all duration-300" style="width: 0%; background-color: ${playerColor}"></div>
           </div>
@@ -1038,8 +1266,27 @@
       if (newGameModal && !newGameModal.classList.contains('hidden')) newGameModal.classList.add('hidden');
       if (editPlayersModal && !editPlayersModal.classList.contains('hidden')) editPlayersModal.classList.add('hidden');
 
-      TARGET_SCORE = GameState.targetScore || TARGET_SCORE;
-      if (targetScoreHeaderLabel) targetScoreHeaderLabel.textContent = `${TARGET_SCORE.toLocaleString('it-IT')} pt`;
+      if (GameState.gameMode === 'yahtzee') {
+        if (btnOpenYahtzeeTable) btnOpenYahtzeeTable.classList.add('hidden');
+        if (turnScoreTitleLabel) turnScoreTitleLabel.textContent = "Somma dei 5 dadi";
+        if (leaderboardButtonLabel) leaderboardButtonLabel.textContent = "Tabella punteggio";
+        btnLeaderboard.setAttribute('aria-label', 'Apri tabella punteggio');
+        if (leaderboardTitle) leaderboardTitle.textContent = "Tabella punteggio · Yahtzee";
+      } else if (GameState.gameMode === 'betting') {
+        if (btnOpenYahtzeeTable) btnOpenYahtzeeTable.classList.add('hidden');
+        if (turnScoreTitleLabel) turnScoreTitleLabel.textContent = "Piatto";
+        if (leaderboardButtonLabel) leaderboardButtonLabel.textContent = "Tavolo puntate";
+        btnLeaderboard.setAttribute('aria-label', 'Apri tavolo puntate');
+        if (leaderboardTitle) leaderboardTitle.textContent = "Poker Dice · Tavolo scoperto";
+      } else {
+        if (btnOpenYahtzeeTable) btnOpenYahtzeeTable.classList.add('hidden');
+        TARGET_SCORE = GameState.targetScore || 5000;
+        if (turnScoreTitleLabel) turnScoreTitleLabel.textContent = "Punti Mano Selezionati";
+        if (leaderboardButtonLabel) leaderboardButtonLabel.textContent = "Classifica";
+        btnLeaderboard.setAttribute('aria-label', 'Apri classifica');
+        if (leaderboardTitle) leaderboardTitle.textContent = "Classifica";
+      }
+
       renderLogs();
       initScoreboard();
       const totalCards = GameState.numPlayers;
@@ -1048,39 +1295,87 @@
         const cardEl = document.getElementById(`cardP${i}`);
         const labelEl = document.getElementById(`labelP${i}`);
         const scoreEl = document.getElementById(`scoreP${i}`);
+        const subEl = document.getElementById(`subP${i}`);
+        const handEl = document.getElementById(`handP${i}`);
         const barEl = document.getElementById(`barP${i}`);
         if(!cardEl) continue;
         const playerColor = PLAYER_COLORS[(i - 1) % PLAYER_COLORS.length];
 
-        let currentScore = GameState.scores[i] || 0;
+        const betState = GameState.gameMode === 'betting' ? GameState.betState : null;
+        let currentScore = betState ? (betState.bankrolls[i] || 0) : (GameState.scores[i] || 0);
         let isMe = GameState.playerIds[i] === myPlayerId;
-        labelEl.innerHTML = (GameState.activePlayer === i ? '● ' : '') + getPlayerName(i) + (isMe ? ' (Tu)' : '');
+        const hasFolded = betState && betState.folded.includes(i);
+        labelEl.innerHTML = (GameState.activePlayer === i ? '● ' : '') + getPlayerName(i) + (isMe ? ' (Tu)' : '') + (hasFolded ? ' · Fold' : '');
         labelEl.style.color = playerColor;
 
         scoreEl.textContent = currentScore;
-        barEl.style.width = Math.min(100, (currentScore / TARGET_SCORE) * 100) + '%';
+        const completedSlots = Object.keys(GameState.yahtzeeScorecards[i] || {}).length;
+        subEl.textContent = GameState.gameMode === 'yahtzee'
+          ? `${completedSlots}/13 caselle`
+          : betState ? 'fiches' : 'pt';
+        if (betState) {
+          const hand = betState.hands[i];
+          const handIsRevealed = betState.revealedPlayers && betState.revealedPlayers.includes(i);
+          handEl.classList.toggle('hidden', hasFolded || !handIsRevealed || !hand || hand.length !== 5);
+          handEl.textContent = !hasFolded && handIsRevealed && hand && hand.length === 5
+            ? `${hand.map(die => POKER_FACES[die.value]).join(' · ')} · ${evaluateBettingHand(hand.map(die => die.value)).label}`
+            : '';
+        } else {
+          handEl.classList.add('hidden');
+          handEl.textContent = '';
+        }
+        const maxBarVal = betState ? betState.startingChips : GameState.gameMode === 'yahtzee' ? 600 : TARGET_SCORE;
+        barEl.style.width = Math.min(100, (currentScore / maxBarVal) * 100) + '%';
         cardEl.className = "relative p-2 rounded-xl border transition-all " + 
           (GameState.activePlayer === i ? "bg-zinc-900 border-emerald-500/80 scale-[1.02] shadow" : "bg-zinc-900/40 border-zinc-800 opacity-60");
         cardEl.style.borderColor = playerColor;
+        if (betState && betState.folded.includes(i)) {
+          cardEl.classList.add('opacity-30');
+        }
       }
 
       renderLeaderboard();
 
-      availableRollsCountEl.textContent = `${GameState.rollsLeft} di 3`;
-
+      const freeDiceCount = GameState.dice.filter(die => die.status === 'free').length;
+      const remainingRollsLabel = GameState.rollsLeft === 1 ? '1 lancio' : `${GameState.rollsLeft} lanci`;
+      if (GameState.gameMode === 'betting' && GameState.betState) {
+        const betState = GameState.betState;
+        availableRollsCountEl.textContent = GameState.phase === 'waiting'
+          ? 'In attesa di giocatori'
+          : GameState.phase === 'betting'
+            ? `Puntate · giro ${betState.street}/3`
+            : GameState.phase === 'ready' && betState.street === 3 && freeDiceCount === 0
+              ? `Lancio ${betState.street}/3 · mano confermata`
+              : `Lancio ${betState.street}/3 · ${freeDiceCount} dadi liberi`;
+      } else {
+        availableRollsCountEl.textContent = GameState.phase === 'ready'
+          ? '3 lanci · 5 dadi'
+          : `${remainingRollsLabel} · ${freeDiceCount} dadi liberi`;
+      }
       const turnAllowed = isMyTurn();
 
       if (!turnAllowed) {
         btnRoll.disabled = true;
         btnRoll.classList.add('opacity-50', 'cursor-not-allowed');
-        btnRollText.textContent = `Turno di ${getPlayerName(GameState.activePlayer)}`;
+        btnRollText.textContent = GameState.gameMode === 'betting' && GameState.phase === 'waiting'
+          ? 'In attesa di un altro giocatore'
+          : `Turno di ${getPlayerName(GameState.activePlayer)}`;
         btnBank.disabled = true;
         btnBank.classList.add('opacity-40', 'cursor-not-allowed');
       } else {
         if (GameState.phase === 'ready') {
-          btnRoll.disabled = false;
-          btnRoll.classList.remove('opacity-50', 'cursor-not-allowed');
-          btnRollText.textContent = "Lancia i 5 Dadi";
+          const waitingForPlayers = GameState.gameMode === 'betting' &&
+            (!GameState.betState || GameState.betState.awaitingPlayers || GameState.betState.participants.length < 2);
+          btnRoll.disabled = waitingForPlayers;
+          btnRoll.classList.toggle('opacity-50', waitingForPlayers);
+          btnRoll.classList.toggle('cursor-not-allowed', waitingForPlayers);
+          btnRollText.textContent = waitingForPlayers
+            ? 'In attesa di un altro giocatore'
+            : GameState.gameMode === 'betting'
+              ? freeDiceCount === 0 && GameState.betState.street > 1
+                ? 'Conferma i dadi'
+                : `Lancia ${freeDiceCount === 5 || GameState.betState.street === 1 ? '5 dadi' : `${freeDiceCount} dadi`}`
+              : "Lancia i 5 Dadi";
           btnBank.disabled = true;
           btnBank.classList.add('opacity-40', 'cursor-not-allowed');
         } else if (GameState.phase === 'rolling') {
@@ -1089,19 +1384,25 @@
           btnRollText.textContent = "Mescolando...";
           btnBank.disabled = true;
           btnBank.classList.add('opacity-40', 'cursor-not-allowed');
+        } else if (GameState.phase === 'betting' || GameState.phase === 'waiting' || GameState.phase === 'finished') {
+          btnRoll.disabled = true;
+          btnRoll.classList.add('opacity-50', 'cursor-not-allowed');
+          btnRollText.textContent = GameState.phase === 'betting' ? 'Puntate in corso' : 'In attesa';
+          btnBank.disabled = true;
+          btnBank.classList.add('opacity-40', 'cursor-not-allowed');
         } else if (GameState.phase === 'rolled') {
           btnBank.disabled = false;
           btnBank.classList.remove('opacity-40', 'cursor-not-allowed');
-          btnBankText.textContent = "Registra Mano";
+          btnBankText.textContent = GameState.gameMode === 'yahtzee' ? "Registra mano" : "Registra Mano";
 
           if (GameState.rollsLeft > 0) {
             btnRoll.disabled = false;
             btnRoll.classList.remove('opacity-50', 'cursor-not-allowed');
-            btnRollText.textContent = `Rilancia dadi liberi (${GameState.rollsLeft} rimasti)`;
+            btnRollText.textContent = `Rilancia ${freeDiceCount} dadi liberi (${remainingRollsLabel})`;
           } else {
             btnRoll.disabled = true;
             btnRoll.classList.add('opacity-50', 'cursor-not-allowed');
-            btnRollText.textContent = "Lanci esauriti - Registra";
+            btnRollText.textContent = "Lanci esauriti - Compila";
           }
         }
       }
@@ -1109,13 +1410,28 @@
       const selectedDiceValues = [];
       GameState.dice.forEach(d => { if (d.status === 'selected') selectedDiceValues.push(d.value); });
       
-      const handEval = evaluatePokerHand(selectedDiceValues);
-
-      turnScoreTotalEl.textContent = handEval.score;
-      if (selectedDiceValues.length === 0) {
-        selectionPillEl.textContent = `Seleziona i dadi per comporre la tua combinazione e registrare il punteggio`;
+      if (GameState.gameMode === 'normal') {
+        const handEval = evaluatePokerHand(selectedDiceValues);
+        turnScoreTotalEl.textContent = handEval.score;
+        if (selectedDiceValues.length === 0) {
+          selectionPillEl.textContent = `Seleziona i dadi per comporre la tua combinazione e registrare il punteggio`;
+        } else {
+          selectionPillEl.textContent = `Combinazione scelta: ${handEval.name} — ${handEval.desc} (${handEval.score} pt)`;
+        }
       } else {
-        selectionPillEl.textContent = `Combinazione scelta: ${handEval.name} — ${handEval.desc} (${handEval.score} pt)`;
+        const diceValsAll = GameState.dice.map(d => d.value);
+        if (GameState.gameMode === 'betting' && GameState.betState) {
+          turnScoreTotalEl.textContent = GameState.betState.pot;
+          selectionPillEl.textContent = GameState.phase === 'waiting'
+            ? 'Servono almeno 2 giocatori con fiches per iniziare la mano.'
+            : GameState.phase === 'betting'
+              ? `Giro di puntate ${GameState.betState.street} · piatto ${GameState.betState.pot} fiches`
+              : `Poker Dice a tavolo scoperto · mano ${GameState.betState.handNumber}`;
+        } else {
+          const diceSum = diceValsAll.reduce((sum, value) => sum + DICE_NUMERIC_VALUES[value], 0);
+          turnScoreTotalEl.textContent = diceSum;
+          selectionPillEl.textContent = `Turno Yahtzee - Clicca "Compila Tabella" per scegliere la casella`;
+        }
       }
 
       GameState.dice.forEach((d, idx) => {
@@ -1134,21 +1450,495 @@
       });
 
       roundCounterEl.textContent = `Round ${GameState.round} • ${getPlayerName(GameState.activePlayer)}`;
-      statusMessageEl.textContent = turnAllowed ? "Scegli quali dadi bloccare e rilancia gli altri!" : `Turno di ${getPlayerName(GameState.activePlayer)}`;
+      if (GameState.gameMode === 'betting' && GameState.betState) {
+        statusMessageEl.textContent = GameState.phase === 'waiting'
+          ? 'In attesa che si unisca un secondo giocatore.'
+          : GameState.phase === 'betting'
+            ? (turnAllowed ? 'È il tuo turno di puntare.' : `Turno di puntata: ${getPlayerName(GameState.activePlayer)}`)
+            : (turnAllowed ? 'Scegli quali dadi tenere e lancia.' : `Turno di lancio: ${getPlayerName(GameState.activePlayer)}`);
+      } else {
+        statusMessageEl.textContent = turnAllowed ? "Scegli quali dadi bloccare e rilancia gli altri!" : `Turno di ${getPlayerName(GameState.activePlayer)}`;
+      }
+      renderBettingActionModal();
       if (window.lucide) lucide.createIcons();
+    }
+
+    function getBetState() {
+      return GameState.betState;
+    }
+
+    function getBettingLimit() {
+      const betState = getBetState();
+      return betState.street === 3 ? betState.bigBet : betState.smallBet;
+    }
+
+    function getBettingHand(playerId) {
+      const betState = getBetState();
+      return (betState.hands[playerId] || []).map(die => die.value);
+    }
+
+    function nextBettingPlayer(afterPlayer, eligiblePlayers) {
+      if (!eligiblePlayers.length) return null;
+      for (let step = 1; step <= GameState.numPlayers; step++) {
+        const candidate = ((afterPlayer - 1 + step) % GameState.numPlayers) + 1;
+        if (eligiblePlayers.includes(candidate)) return candidate;
+      }
+      return null;
+    }
+
+    function getBettingPlayerOrderFromDealer(players) {
+      const order = [];
+      let cursor = getBetState().dealerPlayer;
+      for (let index = 0; index < players.length; index++) {
+        cursor = nextBettingPlayer(cursor, players);
+        if (cursor === null) break;
+        order.push(cursor);
+      }
+      return order;
+    }
+
+    function selectFirstBettingActor(players) {
+      let strongest = [];
+      players.forEach(playerId => {
+        const hand = evaluateBettingHand(getBettingHand(playerId));
+        if (!strongest.length) {
+          strongest = [playerId];
+          return;
+        }
+        const comparison = compareBettingHands(hand, evaluateBettingHand(getBettingHand(strongest[0])));
+        if (comparison > 0) strongest = [playerId];
+        else if (comparison === 0) strongest.push(playerId);
+      });
+      return getBettingPlayerOrderFromDealer(strongest)[0] || players[0];
+    }
+
+    function copyBettingHandToTable(playerId) {
+      const hand = getBetState().hands[playerId];
+      GameState.dice = hand.map(die => ({ value: die.value, status: die.status }));
+    }
+
+    function persistBettingUpdate(message) {
+      updateUI();
+      saveStateToCloud(message);
+    }
+
+    function startBettingHand(rotateDealer = false, previousHandMessage = '') {
+      const betState = getBetState();
+      if (!betState) return;
+      const fundedPlayers = [];
+      for (let playerId = 1; playerId <= GameState.numPlayers; playerId++) {
+        if ((betState.bankrolls[playerId] || 0) >= 1) fundedPlayers.push(playerId);
+      }
+      if (fundedPlayers.length < 2) {
+        if (GameState.numPlayers >= 2 && fundedPlayers.length === 1) {
+          GameState.phase = 'finished';
+          triggerVictory(fundedPlayers[0], betState.bankrolls[fundedPlayers[0]]);
+          saveStateToCloud(`${getPlayerName(fundedPlayers[0])} vince la partita con le fiches rimaste!`);
+          return;
+        }
+        betState.awaitingPlayers = true;
+        GameState.phase = 'waiting';
+        GameState.activePlayer = 1;
+        GameState.rollsLeft = 0;
+        GameState.dice.forEach(die => { die.status = 'free'; });
+        persistBettingUpdate('In attesa di un secondo giocatore per iniziare la partita con puntate.');
+        return;
+      }
+
+      if (rotateDealer) {
+        betState.dealerPlayer = nextBettingPlayer(betState.dealerPlayer, Array.from(
+          { length: GameState.numPlayers },
+          (_, index) => index + 1
+        ));
+      }
+      betState.handNumber++;
+      betState.participants = fundedPlayers;
+      betState.folded = [];
+      betState.rolledPlayers = [];
+      betState.revealedPlayers = [];
+      betState.pot = 0;
+      betState.street = 1;
+      betState.currentBet = 0;
+      betState.contributions = {};
+      betState.raises = 0;
+      betState.actedPlayers = [];
+      betState.awaitingPlayers = false;
+      betState.hands = {};
+
+      fundedPlayers.forEach(playerId => {
+        betState.bankrolls[playerId] -= 1;
+        betState.pot += 1;
+        betState.hands[playerId] = Array.from({ length: 5 }, () => ({ value: 1, status: 'free' }));
+        betState.contributions[playerId] = 0;
+      });
+      GameState.round = betState.handNumber;
+      GameState.rollsLeft = 1;
+      GameState.activePlayer = nextBettingPlayer(betState.dealerPlayer, fundedPlayers);
+      copyBettingHandToTable(GameState.activePlayer);
+      GameState.phase = 'ready';
+      const anteMessage = `${getPlayerName(betState.dealerPlayer)} è il mazziere. Ante versata: ${fundedPlayers.map(getPlayerName).join(', ')} (${betState.pot} fiches nel piatto).`;
+      addLog(anteMessage, true);
+      persistBettingUpdate(previousHandMessage ? `${previousHandMessage} ${anteMessage}` : anteMessage);
+    }
+
+    function beginBettingRound() {
+      const betState = getBetState();
+      const activePlayers = betState.participants.filter(playerId => !betState.folded.includes(playerId));
+      if (activePlayers.length === 1) {
+        awardBettingPot([activePlayers[0]], 'Tutti gli altri hanno lasciato.');
+        return;
+      }
+      betState.currentBet = 0;
+      betState.contributions = {};
+      betState.raises = 0;
+      betState.actedPlayers = [];
+      activePlayers.forEach(playerId => { betState.contributions[playerId] = 0; });
+      GameState.activePlayer = selectFirstBettingActor(activePlayers);
+      copyBettingHandToTable(GameState.activePlayer);
+      GameState.phase = 'betting';
+      const message = `Giro di puntate ${betState.street} di 3: apre ${getPlayerName(GameState.activePlayer)} (mano più alta).`;
+      addLog(message, true);
+      persistBettingUpdate(message);
+    }
+
+    function continueBettingRolls() {
+      const betState = getBetState();
+      const activePlayers = betState.participants.filter(playerId => !betState.folded.includes(playerId));
+      if (activePlayers.length === 1) {
+        awardBettingPot([activePlayers[0]], 'Tutti gli altri hanno lasciato.');
+        return;
+      }
+      const unrolledPlayers = activePlayers.filter(playerId => !betState.rolledPlayers.includes(playerId));
+      if (unrolledPlayers.length) {
+        GameState.activePlayer = nextBettingPlayer(GameState.activePlayer, unrolledPlayers);
+        copyBettingHandToTable(GameState.activePlayer);
+        GameState.phase = 'ready';
+        GameState.rollsLeft = 1;
+        persistBettingUpdate(`Tocca a ${getPlayerName(GameState.activePlayer)} lanciare.`);
+        return;
+      }
+      beginBettingRound();
+    }
+
+    function finishBettingRoll() {
+      const betState = getBetState();
+      betState.hands[GameState.activePlayer] = GameState.dice.map(die => ({ value: die.value, status: die.status }));
+      if (!betState.rolledPlayers.includes(GameState.activePlayer)) {
+        betState.rolledPlayers.push(GameState.activePlayer);
+      }
+      if (!betState.revealedPlayers) betState.revealedPlayers = [];
+      if (!betState.revealedPlayers.includes(GameState.activePlayer)) {
+        betState.revealedPlayers.push(GameState.activePlayer);
+      }
+      continueBettingRolls();
+    }
+
+    function performBettingAction(action) {
+      const betState = getBetState();
+      if (GameState.gameMode !== 'betting' || GameState.phase !== 'betting' || !isMyTurn()) return;
+      const playerId = GameState.activePlayer;
+      const bankroll = betState.bankrolls[playerId] || 0;
+      const contribution = betState.contributions[playerId] || 0;
+      const owed = betState.currentBet - contribution;
+      const limit = getBettingLimit();
+
+      if (action === 'check' && owed > 0) return;
+      if (action === 'bet' && (betState.currentBet !== 0 || bankroll < limit)) return;
+      if (action === 'call' && (owed <= 0 || bankroll < owed)) return;
+      if (action === 'raise' && (owed <= 0 || betState.raises >= 3 || bankroll < owed + limit)) return;
+      if (!['check', 'bet', 'call', 'raise', 'fold'].includes(action)) return;
+
+      if (action === 'fold') {
+        betState.folded.push(playerId);
+      } else if (action === 'bet') {
+        betState.bankrolls[playerId] -= limit;
+        betState.pot += limit;
+        betState.contributions[playerId] = limit;
+        betState.currentBet = limit;
+        betState.actedPlayers = [playerId];
+      } else if (action === 'call') {
+        betState.bankrolls[playerId] -= owed;
+        betState.pot += owed;
+        betState.contributions[playerId] += owed;
+        betState.actedPlayers.push(playerId);
+      } else if (action === 'raise') {
+        const amount = owed + limit;
+        betState.bankrolls[playerId] -= amount;
+        betState.pot += amount;
+        betState.contributions[playerId] += amount;
+        betState.currentBet = betState.contributions[playerId];
+        betState.raises++;
+        betState.actedPlayers = [playerId];
+      } else {
+        betState.actedPlayers.push(playerId);
+      }
+
+      const actionNames = { check: 'fa parola', bet: `punta ${limit}`, call: `vede ${owed}`, raise: `rilancia di ${limit}`, fold: 'lascia la mano' };
+      const message = `${getPlayerName(playerId)} ${actionNames[action]}${action === 'fold' ? '' : ` · piatto ${betState.pot} fiches`}.`;
+      addLog(message, true);
+      const remainingPlayers = betState.participants.filter(id => !betState.folded.includes(id));
+      if (remainingPlayers.length === 1) {
+        awardBettingPot([remainingPlayers[0]], 'Gli altri giocatori hanno foldato.');
+        return;
+      }
+
+      const needingAction = remainingPlayers.filter(id =>
+        !betState.actedPlayers.includes(id) || (betState.contributions[id] || 0) < betState.currentBet
+      );
+      if (!needingAction.length) {
+        if (betState.street === 3) {
+          resolveBettingShowdown();
+        } else {
+          betState.street++;
+          betState.rolledPlayers = [];
+          betState.currentBet = 0;
+          betState.contributions = {};
+          betState.raises = 0;
+          betState.actedPlayers = [];
+          remainingPlayers.forEach(id => { betState.contributions[id] = 0; });
+          GameState.activePlayer = nextBettingPlayer(betState.dealerPlayer, remainingPlayers);
+          copyBettingHandToTable(GameState.activePlayer);
+          GameState.rollsLeft = 1;
+          GameState.phase = 'ready';
+          addLog(`Inizia il lancio ${betState.street} di 3. Puoi cambiare anche i dadi bloccati.`, true);
+          persistBettingUpdate(message);
+        }
+        return;
+      }
+
+      GameState.activePlayer = nextBettingPlayer(playerId, needingAction);
+      copyBettingHandToTable(GameState.activePlayer);
+      persistBettingUpdate(message);
+    }
+
+    function resolveBettingShowdown() {
+      const betState = getBetState();
+      const activePlayers = betState.participants.filter(playerId => !betState.folded.includes(playerId));
+      let bestPlayers = [];
+      activePlayers.forEach(playerId => {
+        const hand = evaluateBettingHand(getBettingHand(playerId));
+        if (!bestPlayers.length) {
+          bestPlayers = [playerId];
+          return;
+        }
+        const comparison = compareBettingHands(hand, evaluateBettingHand(getBettingHand(bestPlayers[0])));
+        if (comparison > 0) bestPlayers = [playerId];
+        else if (comparison === 0) bestPlayers.push(playerId);
+      });
+      awardBettingPot(bestPlayers, bestPlayers.length > 1 ? 'Split pot: mani pari allo showdown.' : `Showdown: ${evaluateBettingHand(getBettingHand(bestPlayers[0])).label}.`);
+    }
+
+    function awardBettingPot(winners, reason) {
+      const betState = getBetState();
+      if (!winners.length) return;
+      const pot = betState.pot;
+      const share = Math.floor(pot / winners.length);
+      let remainder = pot % winners.length;
+      const winnerOrder = getBettingPlayerOrderFromDealer(winners);
+      winnerOrder.forEach(playerId => {
+        betState.bankrolls[playerId] = (betState.bankrolls[playerId] || 0) + share + (remainder > 0 ? 1 : 0);
+        if (remainder > 0) remainder--;
+      });
+      betState.pot = 0;
+      const winnerText = winnerOrder.map(playerId => getPlayerName(playerId)).join(', ');
+      const message = `${reason} ${winnerText} ${winnerOrder.length > 1 ? 'dividono' : 'vince'} il piatto di ${pot} fiches.`;
+      addLog(message, true);
+
+      const fundedPlayers = Object.values(betState.bankrolls).filter(chips => chips > 0).length;
+      if (GameState.numPlayers >= 2 && fundedPlayers <= 1) {
+        const winnerId = Number(Object.keys(betState.bankrolls).find(id => betState.bankrolls[id] > 0));
+        GameState.phase = 'finished';
+        triggerVictory(winnerId, betState.bankrolls[winnerId] || 0);
+        saveStateToCloud(message);
+        return;
+      }
+      startBettingHand(true, message);
+    }
+
+    function renderBettingActionModal() {
+      const isBettingAction = GameState.gameMode === 'betting' && GameState.phase === 'betting' && GameState.betState && isMyTurn();
+      bettingActionModal.classList.toggle('hidden', !isBettingAction);
+      if (!isBettingAction) return;
+
+      const betState = getBetState();
+      const playerId = GameState.activePlayer;
+      const hand = evaluateBettingHand(getBettingHand(playerId));
+      const contribution = betState.contributions[playerId] || 0;
+      const owed = betState.currentBet - contribution;
+      const limit = getBettingLimit();
+      const bankroll = betState.bankrolls[playerId] || 0;
+      bettingModalTitle.textContent = `Giro ${betState.street} di 3 · tocca a te`;
+      bettingModalSubtitle.textContent = `Puntata ${betState.street === 3 ? 'grande' : 'piccola'} · ${betState.raises}/3 rilanci`;
+      bettingPotDisplay.textContent = `Piatto: ${betState.pot} fiches`;
+      bettingHandDisplay.textContent = hand.label;
+      bettingStackDisplay.textContent = `${bankroll} fiches`;
+      bettingToCallDisplay.textContent = owed > 0 ? `${owed} fiches` : 'Nessuna';
+      bettingLimitDisplay.textContent = `${limit} fiches`;
+      bettingActionHint.textContent = owed > bankroll
+        ? 'Non hai abbastanza fiches per vedere: puoi solo lasciare.'
+        : betState.currentBet === 0
+          ? 'Puoi passare (check) o aprire il giro con una puntata.'
+          : `Per restare in gioco, pareggia ${owed} fiches oppure rilancia.`;
+
+      btnBetCheck.textContent = 'Parola (Check)';
+      btnBetCheck.disabled = owed > 0;
+      btnBetOpen.textContent = `Punta ${limit}`;
+      btnBetOpen.disabled = betState.currentBet !== 0 || bankroll < limit;
+      btnBetCall.textContent = owed > 0 ? `Vedi ${owed}` : 'Nessuna puntata';
+      btnBetCall.disabled = owed <= 0 || bankroll < owed;
+      btnBetRaise.textContent = `Rilancia +${limit}`;
+      btnBetRaise.disabled = owed <= 0 || betState.raises >= 3 || bankroll < owed + limit;
+      [btnBetCheck, btnBetOpen, btnBetCall, btnBetRaise].forEach(button => {
+        button.classList.toggle('opacity-40', button.disabled);
+        button.classList.toggle('cursor-not-allowed', button.disabled);
+      });
     }
 
     function renderLeaderboard() {
       if (!leaderboardContainer) return;
       if (leaderboardTargetLabel) {
-        leaderboardTargetLabel.textContent = `Obiettivo Tavolo: ${(GameState.targetScore || TARGET_SCORE).toLocaleString('it-IT')} pt`;
+        leaderboardTargetLabel.textContent = GameState.gameMode === 'yahtzee'
+          ? `Modalità Yahtzee (13 turni)`
+          : GameState.gameMode === 'betting'
+            ? `Piatto: ${GameState.betState ? GameState.betState.pot : 0} fiches`
+            : `Obiettivo Tavolo: ${(GameState.targetScore || TARGET_SCORE).toLocaleString('it-IT')} pt`;
       }
       leaderboardContainer.innerHTML = '';
       const list = [];
       for (let i = 1; i <= GameState.numPlayers; i++) {
-        list.push({ id: i, score: GameState.scores[i] || 0, isActive: GameState.activePlayer === i });
+        const score = GameState.gameMode === 'betting' && GameState.betState
+          ? GameState.betState.bankrolls[i] || 0
+          : GameState.scores[i] || 0;
+        list.push({ id: i, score, isActive: GameState.activePlayer === i });
       }
       list.sort((a, b) => b.score - a.score);
+
+      if (GameState.gameMode === 'betting' && GameState.betState) {
+        const betState = GameState.betState;
+        const title = document.createElement('p');
+        title.className = 'text-[10px] text-zinc-400';
+        title.textContent = `Mano ${betState.handNumber || 0} · Mazziere: ${getPlayerName(betState.dealerPlayer)} · Puntate ${betState.street || 1}/3 · ${betState.raises || 0}/3 rilanci`;
+        leaderboardContainer.appendChild(title);
+        list.forEach(player => {
+          const bankroll = betState.bankrolls[player.id] || 0;
+          const handValues = getBettingHand(player.id);
+          const row = document.createElement('article');
+          row.className = `rounded-xl border p-3 ${player.isActive ? 'border-emerald-500/50 bg-emerald-500/10' : 'border-zinc-800 bg-zinc-950'}`;
+          const header = document.createElement('div');
+          header.className = 'flex items-center justify-between';
+          const name = document.createElement('strong');
+          name.className = 'text-xs';
+          name.style.color = PLAYER_COLORS[(player.id - 1) % PLAYER_COLORS.length];
+          name.textContent = `${getPlayerName(player.id)}${betState.folded.includes(player.id) ? ' · Fold' : ''}${player.isActive ? ' · tocca a te' : ''}`;
+          const stack = document.createElement('strong');
+          stack.className = 'text-sm text-amber-300';
+          stack.textContent = `${bankroll} fiches`;
+          header.append(name, stack);
+          row.appendChild(header);
+          const hand = document.createElement('p');
+          const handIsRevealed = betState.revealedPlayers && betState.revealedPlayers.includes(player.id);
+          hand.className = `mt-1 text-[11px] ${handIsRevealed ? 'text-cyan-300' : 'text-zinc-500'}`;
+          hand.textContent = betState.folded.includes(player.id)
+            ? 'Mano abbandonata · dadi riposti'
+            : handIsRevealed && handValues.length === 5
+              ? `${handValues.map(value => POKER_FACES[value]).join(' · ')} — ${evaluateBettingHand(handValues).label}`
+              : 'In attesa del primo lancio';
+          row.appendChild(hand);
+          if (betState.participants.includes(player.id) && !betState.folded.includes(player.id)) {
+            const investment = document.createElement('p');
+            investment.className = 'mt-1 text-[10px] text-zinc-500';
+            investment.textContent = `Nel giro corrente: ${betState.contributions[player.id] || 0} · ha lanciato: ${betState.rolledPlayers.includes(player.id) ? 'sì' : 'no'}`;
+            row.appendChild(investment);
+          } else if (bankroll === 0) {
+            const skipped = document.createElement('p');
+            skipped.className = 'mt-1 text-[10px] text-red-300';
+            skipped.textContent = 'Senza fiches per l’ante · salta la mano';
+            row.appendChild(skipped);
+          }
+          leaderboardContainer.appendChild(row);
+        });
+        return;
+      }
+
+      if (GameState.gameMode === 'yahtzee') {
+        list.forEach((player, rank) => {
+          const card = GameState.yahtzeeScorecards[player.id] || {};
+          const upperSum = Object.keys(YAHTZEE_SLOTS_DEF)
+            .filter(key => YAHTZEE_SLOTS_DEF[key].type === 'upper')
+            .reduce((sum, key) => sum + (card[key] || 0), 0);
+          const lowerSum = Object.keys(YAHTZEE_SLOTS_DEF)
+            .filter(key => YAHTZEE_SLOTS_DEF[key].type === 'lower')
+            .reduce((sum, key) => sum + (card[key] || 0), 0);
+          const upperBonus = upperSum >= 63 ? 35 : 0;
+          const multipleBonus = GameState.yahtzeeBonuses[player.id] || 0;
+          const playerCard = document.createElement('article');
+          playerCard.className = `rounded-xl border p-3 ${player.isActive ? 'border-emerald-500/50 bg-emerald-500/5' : 'border-zinc-800 bg-zinc-950/70'}`;
+
+          const header = document.createElement('div');
+          header.className = 'mb-3 flex items-center justify-between';
+          const name = document.createElement('h4');
+          name.className = 'text-sm font-bold';
+          name.style.color = PLAYER_COLORS[(player.id - 1) % PLAYER_COLORS.length];
+          name.textContent = `${rank + 1}. ${getPlayerName(player.id)}${player.isActive ? ' · turno' : ''}`;
+          const total = document.createElement('strong');
+          total.className = 'text-sm text-emerald-300';
+          total.textContent = `${player.score} pt`;
+          header.append(name, total);
+          playerCard.appendChild(header);
+
+          const upperSection = createYahtzeeScoreTableSection(
+            '1. Sezione superiore · Valori singoli',
+            Object.keys(YAHTZEE_SLOTS_DEF).filter(key => YAHTZEE_SLOTS_DEF[key].type === 'upper'),
+            card,
+            'text-amber-300'
+          );
+          const upperFooter = document.createElement('p');
+          upperFooter.className = 'mt-1 text-right text-[10px] text-zinc-400';
+          upperFooter.textContent = `Subtotale ${upperSum} pt · Bonus ${upperBonus} pt`;
+          upperSection.appendChild(upperFooter);
+          playerCard.appendChild(upperSection);
+
+          const lowerSection = createYahtzeeScoreTableSection(
+            '2. Sezione inferiore · Combinazioni',
+            Object.keys(YAHTZEE_SLOTS_DEF).filter(key => YAHTZEE_SLOTS_DEF[key].type === 'lower'),
+            card,
+            'text-cyan-300'
+          );
+          const lowerFooter = document.createElement('p');
+          lowerFooter.className = 'mt-1 text-right text-[10px] text-zinc-400';
+          lowerFooter.textContent = `Subtotale ${lowerSum} pt`;
+          lowerSection.appendChild(lowerFooter);
+          playerCard.appendChild(lowerSection);
+
+          const totalsSection = document.createElement('section');
+          totalsSection.className = 'mt-2 rounded-lg border border-emerald-500/20 bg-zinc-900/70 p-2';
+          const totalsHeading = document.createElement('h5');
+          totalsHeading.className = 'mb-1 text-[10px] font-bold uppercase tracking-wider text-emerald-300';
+          totalsHeading.textContent = '3. Totali e bonus';
+          const totals = document.createElement('div');
+          totals.className = 'grid grid-cols-2 gap-1 text-[10px] text-zinc-300 sm:grid-cols-4';
+          [
+            ['Sezione superiore', upperSum],
+            ['Bonus superiore', upperBonus],
+            ['Sezione inferiore', lowerSum],
+            ['Bonus cinquine', multipleBonus]
+          ].forEach(([label, value]) => {
+            const item = document.createElement('div');
+            item.className = 'flex justify-between gap-1 rounded bg-zinc-950 p-1.5';
+            const itemLabel = document.createElement('span');
+            itemLabel.className = 'text-zinc-500';
+            itemLabel.textContent = label;
+            const itemValue = document.createElement('strong');
+            itemValue.textContent = `${value} pt`;
+            item.append(itemLabel, itemValue);
+            totals.appendChild(item);
+          });
+          totalsSection.append(totalsHeading, totals);
+          playerCard.appendChild(totalsSection);
+          leaderboardContainer.appendChild(playerCard);
+        });
+        return;
+      }
 
       list.forEach((p, idx) => {
         const playerColor = PLAYER_COLORS[(p.id - 1) % PLAYER_COLORS.length];
@@ -1165,9 +1955,206 @@
       });
     }
 
+    function createYahtzeeScoreTableSection(title, slotKeys, scorecard, titleColorClass) {
+      const section = document.createElement('section');
+      section.className = 'mt-2 rounded-lg border border-zinc-800 bg-zinc-900/50 p-2';
+      const heading = document.createElement('h5');
+      heading.className = `mb-1 text-[10px] font-bold uppercase tracking-wider ${titleColorClass}`;
+      heading.textContent = title;
+      const table = document.createElement('table');
+      table.className = 'w-full text-[10px]';
+      slotKeys.forEach(key => {
+        const row = table.insertRow();
+        row.className = 'border-t border-zinc-800/80';
+        const name = row.insertCell();
+        name.className = 'py-1 text-zinc-300';
+        name.textContent = YAHTZEE_SLOTS_DEF[key].name;
+        const value = row.insertCell();
+        value.className = 'py-1 text-right font-semibold text-white';
+        value.textContent = scorecard[key] === undefined ? '—' : `${scorecard[key]} pt`;
+      });
+      section.append(heading, table);
+      return section;
+    }
+
+    function openYahtzeeScorecardModal() {
+      if (!isMyTurn() || GameState.phase !== 'rolled') {
+        alert("Puoi compilare la tabella solo alla fine dei tuoi lanci nel tuo turno!");
+        return;
+      }
+      triggerHaptic(20);
+      renderYahtzeeModalContent();
+      yahtzeeScorecardModal.classList.remove('hidden');
+    }
+
+    function renderYahtzeeModalContent() {
+      yahtzeeUpperSlots.innerHTML = '';
+      yahtzeeLowerSlots.innerHTML = '';
+      yahtzeeModalSubtitle.textContent = `Turno di ${getPlayerName(GameState.activePlayer)} · scegli una casella vuota`;
+      
+      const pId = GameState.activePlayer;
+      if (!GameState.yahtzeeScorecards[pId]) GameState.yahtzeeScorecards[pId] = {};
+      const playerCard = GameState.yahtzeeScorecards[pId];
+      const diceVals = GameState.dice.map(d => d.value);
+      let upperSum = 0;
+      let lowerSum = 0;
+      Object.keys(YAHTZEE_SLOTS_DEF).forEach(key => {
+        const value = playerCard[key] || 0;
+        if (YAHTZEE_SLOTS_DEF[key].type === 'upper') upperSum += value;
+        else lowerSum += value;
+      });
+      const upperBonus = upperSum >= 63 ? 35 : 0;
+      const multipleBonus = GameState.yahtzeeBonuses[pId] || 0;
+      yahtzeeUpperSubtotal.textContent = upperSum;
+      yahtzeeUpperThreshold.textContent = upperBonus ? 'Bonus ottenuto: +35 pt' : 'Bonus: 0 pt';
+      yahtzeeUpperTotal.textContent = `${upperSum} pt`;
+      yahtzeeUpperBonusTotal.textContent = `${upperBonus} pt`;
+      yahtzeeLowerTotal.textContent = `${lowerSum} pt`;
+      yahtzeeBonusDisplay.textContent = `${multipleBonus} pt`;
+      yahtzeeGrandTotal.textContent = `${upperSum + upperBonus + lowerSum + multipleBonus} pt`;
+
+      Object.keys(YAHTZEE_SLOTS_DEF).forEach(slotKey => {
+        const slotDef = YAHTZEE_SLOTS_DEF[slotKey];
+        const isFilled = playerCard[slotKey] !== undefined;
+        const option = getYahtzeeSlotOption(slotKey, playerCard, diceVals);
+        const row = document.createElement('tr');
+        row.className = isFilled ? 'text-zinc-500' : 'text-zinc-200';
+
+        const nameCell = document.createElement('td');
+        nameCell.className = 'p-1.5 font-semibold';
+        nameCell.textContent = slotDef.name;
+        const scoreCell = document.createElement('td');
+        scoreCell.className = 'p-1.5 text-right font-bold';
+        scoreCell.textContent = isFilled ? `${playerCard[slotKey]} pt` : `${option.score} pt`;
+        const actionCell = document.createElement('td');
+        actionCell.className = 'p-1.5 text-right';
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.disabled = isFilled || !option.selectable;
+        button.className = `rounded-lg px-2 py-1 text-[10px] font-bold transition ${
+          button.disabled
+            ? 'bg-zinc-900 text-zinc-600 cursor-not-allowed'
+            : 'bg-emerald-500/15 text-emerald-300 hover:bg-emerald-500/30'
+        }`;
+        button.textContent = isFilled ? 'Inserita' : option.selectable ? 'Segna' : 'Non disponibile';
+        if (!button.disabled) button.addEventListener('click', () => fillYahtzeeSlot(slotKey));
+        actionCell.appendChild(button);
+        row.append(nameCell, scoreCell, actionCell);
+
+        if (slotDef.type === 'upper') yahtzeeUpperSlots.appendChild(row);
+        else yahtzeeLowerSlots.appendChild(row);
+      });
+    }
+
+    function getYahtzeeSlotOption(slotKey, playerCard, diceVals) {
+      const slotDef = YAHTZEE_SLOTS_DEF[slotKey];
+      let selectable = playerCard[slotKey] === undefined;
+      let score = calculateYahtzeeSlotScore(slotKey, diceVals);
+      const isYahtzeeRoll = diceVals.length === 5 && diceVals.every(value => value === diceVals[0]);
+
+      if (isYahtzeeRoll && playerCard.yahtzee > 0) {
+        const matchingUpper = `upper_${diceVals[0]}`;
+        if (playerCard[matchingUpper] === undefined) {
+          selectable = slotKey === matchingUpper;
+        } else {
+          const hasOpenLowerSlot = Object.keys(YAHTZEE_SLOTS_DEF).some(key =>
+            YAHTZEE_SLOTS_DEF[key].type === 'lower' && playerCard[key] === undefined
+          );
+          if (hasOpenLowerSlot) {
+            selectable = selectable && slotDef.type === 'lower';
+            const jokerScores = { full: 25, small_straight: 30, large_straight: 40 };
+            score = ['tris', 'poker', 'chance'].includes(slotKey)
+              ? diceVals.reduce((sum, value) => sum + DICE_NUMERIC_VALUES[value], 0)
+              : jokerScores[slotKey] || 0;
+          } else {
+            selectable = selectable && slotDef.type === 'upper';
+            score = 0;
+          }
+        }
+      }
+
+      return { selectable, score };
+    }
+
+    function fillYahtzeeSlot(slotKey) {
+      if (!isMyTurn() || GameState.phase !== 'rolled') {
+        yahtzeeScorecardModal.classList.add('hidden');
+        alert("Il turno è cambiato: la tabella non è stata modificata.");
+        return;
+      }
+      const pId = GameState.activePlayer;
+      if (!GameState.yahtzeeScorecards[pId]) GameState.yahtzeeScorecards[pId] = {};
+      const playerCard = GameState.yahtzeeScorecards[pId];
+      const diceVals = GameState.dice.map(d => d.value);
+      const option = getYahtzeeSlotOption(slotKey, playerCard, diceVals);
+      if (playerCard[slotKey] !== undefined || !option.selectable) return;
+
+      const isYahtzeeRoll = diceVals.every(value => value === diceVals[0]);
+      if (isYahtzeeRoll && playerCard.yahtzee > 0) {
+        GameState.yahtzeeBonuses[pId] = (GameState.yahtzeeBonuses[pId] || 0) + 100;
+        addLog(`🎁 ${getPlayerName(pId)} ottiene una cinquina bonus! +100 pt`, true);
+      }
+
+      const scoreVal = option.score;
+      GameState.yahtzeeScorecards[pId][slotKey] = scoreVal;
+
+      // Ricalcola totale giocatore (Sezione superiore + inferiore + bonus)
+      let upperSum = 0;
+      let lowerSum = 0;
+      Object.keys(YAHTZEE_SLOTS_DEF).forEach(k => {
+        const val = GameState.yahtzeeScorecards[pId][k] || 0;
+        if (YAHTZEE_SLOTS_DEF[k].type === 'upper') upperSum += val;
+        else lowerSum += val;
+      });
+
+      let bonusUpper = upperSum >= 63 ? 35 : 0;
+      let bonusMultiples = GameState.yahtzeeBonuses[pId] || 0;
+      GameState.scores[pId] = upperSum + bonusUpper + lowerSum + bonusMultiples;
+
+      sound.playBank();
+      triggerHaptic(60);
+      yahtzeeScorecardModal.classList.add('hidden');
+
+      const msg = `🃏 ${getPlayerName(pId)} compila [${YAHTZEE_SLOTS_DEF[slotKey].name}] con ${scoreVal} pt!`;
+      addLog(msg, true);
+
+      // Controllo fine partita 13 turni
+      let allFinished = true;
+      for (let i = 1; i <= GameState.numPlayers; i++) {
+        const card = GameState.yahtzeeScorecards[i] || {};
+        if (Object.keys(card).length < 13) { allFinished = false; break; }
+      }
+
+      if (allFinished) {
+        let winnerId = 1, maxS = -1;
+        for (let i = 1; i <= GameState.numPlayers; i++) {
+          if ((GameState.scores[i] || 0) > maxS) { maxS = GameState.scores[i]; winnerId = i; }
+        }
+        triggerVictory(winnerId, maxS);
+        saveStateToCloud(msg);
+        return;
+      }
+
+      nextTurn();
+    }
+
     function rollDice() {
       if (!isMyTurn() || GameState.phase === 'rolling') return;
+      if (GameState.gameMode === 'betting') {
+        rollBettingDice();
+        return;
+      }
       if (GameState.phase === 'rolled' && GameState.rollsLeft <= 0) return;
+
+      const isFirstRoll = GameState.phase === 'ready';
+      const indicesToRoll = [];
+      GameState.dice.forEach((die, index) => {
+        if (isFirstRoll || die.status === 'free') indicesToRoll.push(index);
+      });
+      if (indicesToRoll.length === 0) {
+        showQuickToast('Sblocca almeno un dado da rilanciare oppure registra la mano.', '🎲');
+        return;
+      }
 
       GameState.phase = 'rolling';
       sound.playDiceRoll();
@@ -1175,46 +2162,77 @@
       updateUI();
       saveStateToCloud();
 
-      const indicesToRoll = [];
-      GameState.dice.forEach((d, idx) => {
-        if (d.status === 'free') {
-          indicesToRoll.push(idx);
-          cubeElements[idx].classList.add('is-rolling');
-        }
-      });
-
-      if (indicesToRoll.length === 0 && GameState.phase === 'ready') {
-        GameState.dice.forEach((d, idx) => {
-          indicesToRoll.push(idx);
-          cubeElements[idx].classList.add('is-rolling');
-        });
-      }
+      indicesToRoll.forEach(index => cubeElements[index].classList.add('is-rolling'));
 
       statusMessageEl.textContent = "Lancio dadi poker...";
 
       setTimeout(() => {
-        const newlyRolledValues = [];
         indicesToRoll.forEach(idx => {
           const val = getRandomDiceRoll();
           GameState.dice[idx].value = val;
-          newlyRolledValues.push(val);
           cubeElements[idx].classList.remove('is-rolling');
           applyCubeRotation(cubeElements[idx], val);
         });
 
+        indicesToRoll.forEach(index => { GameState.dice[index].status = 'free'; });
         GameState.phase = 'rolled';
         GameState.rollsLeft--;
 
-        const allValues = GameState.dice.map(d => d.value);
-        addLog(`${getPlayerName(GameState.activePlayer)} lancia: [ ${allValues.map(v => POKER_FACES[v]).join(', ')} ]`);
+        const rolledValues = indicesToRoll.map(index => POKER_FACES[GameState.dice[index].value]);
+        const allValues = GameState.dice.map(d => POKER_FACES[d.value]);
+        const rollMsg = `${getPlayerName(GameState.activePlayer)} rilancia ${rolledValues.length} dadi: [ ${rolledValues.join(', ')} ] · mano: [ ${allValues.join(', ')} ]`;
+        addLog(rollMsg);
 
         updateUI();
-        saveStateToCloud();
+        saveStateToCloud(rollMsg);
+      }, 700);
+    }
+
+    function rollBettingDice() {
+      if (GameState.phase !== 'ready') return;
+      const betState = getBetState();
+      const isFirstStreet = betState.street === 1;
+      const indicesToRoll = [];
+      GameState.dice.forEach((die, index) => {
+        if (isFirstStreet || die.status === 'free') indicesToRoll.push(index);
+      });
+      if (!indicesToRoll.length) {
+        finishBettingRoll();
+        return;
+      }
+
+      GameState.phase = 'rolling';
+      updateUI();
+      saveStateToCloud();
+      sound.playDiceRoll();
+      triggerHaptic(40);
+      indicesToRoll.forEach(index => cubeElements[index].classList.add('is-rolling'));
+      statusMessageEl.textContent = 'Lancio dei dadi in corso...';
+
+      setTimeout(() => {
+        indicesToRoll.forEach(index => {
+          const value = getRandomDiceRoll();
+          GameState.dice[index].value = value;
+          GameState.dice[index].status = 'free';
+          cubeElements[index].classList.remove('is-rolling');
+          applyCubeRotation(cubeElements[index], value);
+        });
+        betState.hands[GameState.activePlayer] = GameState.dice.map(die => ({ value: die.value, status: die.status }));
+        const values = GameState.dice.map(die => POKER_FACES[die.value]);
+        const message = `${getPlayerName(GameState.activePlayer)} lancia ${indicesToRoll.length} dadi: [ ${values.join(', ')} ] · ${evaluateBettingHand(GameState.dice.map(die => die.value)).label}`;
+        addLog(message, true);
+        GameState.rollsLeft = 0;
+        finishBettingRoll();
       }, 700);
     }
 
     function bankPoints() {
       if (!isMyTurn() || GameState.phase !== 'rolled') return;
+
+      if (GameState.gameMode === 'yahtzee') {
+        openYahtzeeScorecardModal();
+        return;
+      }
 
       const selectedDiceValues = [];
       GameState.dice.forEach(d => { if (d.status === 'selected') selectedDiceValues.push(d.value); });
@@ -1225,15 +2243,16 @@
       }
 
       const handEval = evaluatePokerHand(selectedDiceValues);
-
       GameState.scores[GameState.activePlayer] += handEval.score;
       sound.playBank();
       triggerHaptic(60);
-      addLog(`🃏 ${getPlayerName(GameState.activePlayer)} registra la combinazione <strong>${handEval.name}</strong> (+${handEval.score} pt)!`, true);
+      
+      const bankMsg = `🃏 ${getPlayerName(GameState.activePlayer)} registra la combinazione <strong>${handEval.name}</strong> (+${handEval.score} pt)!`;
+      addLog(bankMsg, true);
 
       if (GameState.scores[GameState.activePlayer] >= TARGET_SCORE) {
         triggerVictory(GameState.activePlayer, GameState.scores[GameState.activePlayer]);
-        saveStateToCloud();
+        saveStateToCloud(bankMsg);
         return;
       }
 
@@ -1249,8 +2268,9 @@
       }
       GameState.phase = 'ready';
       GameState.dice.forEach(d => { d.status = 'free'; });
+      
       updateUI();
-      saveStateToCloud();
+      saveStateToCloud(`${getPlayerName(GameState.activePlayer)} è il tuo turno!`);
     }
 
     function triggerVictory(player, finalScore) {
@@ -1259,12 +2279,17 @@
       
       const list = [];
       for (let i = 1; i <= GameState.numPlayers; i++) {
-        list.push({ id: i, score: GameState.scores[i] || 0 });
+        const score = GameState.gameMode === 'betting' && GameState.betState
+          ? GameState.betState.bankrolls[i] || 0
+          : GameState.scores[i] || 0;
+        list.push({ id: i, score });
       }
       list.sort((a, b) => b.score - a.score);
 
-      document.getElementById('winnerTitle').textContent = "VITTORIA AL TAVOLO!";
-      document.getElementById('winnerSubtitle').textContent = `${getPlayerName(player)} ha vinto con ${finalScore} punti!`;
+      document.getElementById('winnerTitle').textContent = GameState.gameMode === 'betting' ? "ULTIMO AL TAVOLO!" : "VITTORIA AL TAVOLO!";
+      document.getElementById('winnerSubtitle').textContent = GameState.gameMode === 'betting'
+        ? `${getPlayerName(player)} ha vinto con ${finalScore} fiches!`
+        : `${getPlayerName(player)} ha vinto con ${finalScore} punti!`;
 
       if (winLeaderboardContainer) {
         winLeaderboardContainer.innerHTML = '';
@@ -1288,6 +2313,16 @@
     }
 
     function onDiceClick(index) {
+      if (GameState.gameMode === 'betting') {
+        const betState = getBetState();
+        if (!isMyTurn() || GameState.phase !== 'ready' || betState.street === 1) return;
+        const die = GameState.dice[index];
+        die.status = die.status === 'selected' ? 'free' : 'selected';
+        betState.hands[GameState.activePlayer] = GameState.dice.map(item => ({ value: item.value, status: item.status }));
+        updateUI();
+        saveStateToCloud();
+        return;
+      }
       if (!isMyTurn() || GameState.phase !== 'rolled') return;
       const d = GameState.dice[index];
 
@@ -1298,7 +2333,34 @@
       saveStateToCloud();
     }
 
+    function createBetState(bankrolls, settings) {
+      return {
+        bankrolls,
+        startingChips: settings.startingChips,
+        smallBet: settings.smallBet,
+        bigBet: settings.bigBet,
+        pot: 0,
+        dealerPlayer: 1,
+        participants: [],
+        folded: [],
+        rolledPlayers: [],
+        revealedPlayers: [],
+        hands: {},
+        street: 1,
+        currentBet: 0,
+        contributions: {},
+        raises: 0,
+        actedPlayers: [],
+        handNumber: 0,
+        awaitingPlayers: true
+      };
+    }
+
     function startNewGame(selectedPlayerIndices) {
+      if (GameState.gameMode === 'betting' && (selectedPlayerIndices.length < 2 || selectedPlayerIndices.length > 6)) {
+        alert("La modalità con puntate richiede da 2 a 6 giocatori.");
+        return;
+      }
       triggerHaptic(30);
       const shuffled = [...selectedPlayerIndices];
       for (let i = shuffled.length - 1; i > 0; i--) {
@@ -1306,56 +2368,87 @@
         [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
       }
 
-      const newIds = {}, newNames = {}, newScores = {};
+      const newIds = {}, newNames = {}, newScores = {}, newScorecards = {}, newBonuses = {};
       let count = 0;
       shuffled.forEach(oldIdx => {
         count++;
         newIds[count] = GameState.playerIds[oldIdx];
         newNames[count] = GameState.playerNames[oldIdx];
         newScores[count] = 0;
+        newScorecards[count] = {};
+        newBonuses[count] = 0;
       });
 
       GameState.numPlayers = Math.max(1, count);
       GameState.playerIds = newIds;
       GameState.playerNames = newNames;
       GameState.scores = newScores;
+      GameState.yahtzeeScorecards = newScorecards;
+      GameState.yahtzeeBonuses = newBonuses;
       GameState.activePlayer = 1;
       GameState.round = 1;
       GameState.rollsLeft = 3;
-      GameState.phase = 'ready';
+      GameState.phase = GameState.gameMode === 'betting' ? 'waiting' : 'ready';
       GameState.dice = [
         { value: 6, status: 'free' }, { value: 6, status: 'free' }, { value: 5, status: 'free' },
         { value: 4, status: 'free' }, { value: 3, status: 'free' },
       ];
       GameState.logs = [];
-      addLog(`🃏 Nuova mano avviata! In bocca al lupo.`);
+      if (GameState.gameMode === 'betting') {
+        const settings = {
+          startingChips: GameState.betState ? GameState.betState.startingChips : 50,
+          smallBet: GameState.betState ? GameState.betState.smallBet : 2,
+          bigBet: GameState.betState ? GameState.betState.bigBet : 4
+        };
+        const bankrolls = {};
+        for (let playerId = 1; playerId <= GameState.numPlayers; playerId++) {
+          bankrolls[playerId] = settings.startingChips;
+        }
+        GameState.betState = createBetState(bankrolls, settings);
+        addLog('🃏 Nuova partita con puntate: bankroll ricaricati e mazziere designato.');
+      } else {
+        GameState.betState = null;
+        addLog(`🃏 Nuova mano avviata! In bocca al lupo.`);
+      }
       initScoreboard();
+      if (GameState.gameMode === 'betting') {
+        startBettingHand(false);
+        return;
+      }
       updateUI();
-      saveStateToCloud();
+      saveStateToCloud("Nuova partita avviata!");
     }
 
-    function initializeNewRoomGame(name, targetScore) {
+    function initializeNewRoomGame(name, gameMode, targetScore, bettingSettings) {
+      const settings = bettingSettings || { startingChips: 50, smallBet: 2, bigBet: 4 };
+      const betState = gameMode === 'betting'
+        ? createBetState({ 1: settings.startingChips }, settings)
+        : null;
       Object.assign(GameState, {
+        gameMode,
         targetScore,
         numPlayers: 1,
         activePlayer: 1,
         playerIds: { 1: myPlayerId },
         playerNames: { 1: name },
         scores: { 1: 0 },
+        yahtzeeScorecards: { 1: {} },
+        yahtzeeBonuses: { 1: 0 },
+        betState,
         round: 1,
         rollsLeft: 3,
-        phase: 'ready',
+        phase: gameMode === 'betting' ? 'waiting' : 'ready',
         dice: [
           { value: 6, status: 'free' }, { value: 5, status: 'free' }, { value: 4, status: 'free' },
           { value: 3, status: 'free' }, { value: 2, status: 'free' },
         ],
-        logs: [{ text: "Tavolo Poker Dice pronto. Buon divertimento!", highlight: false }],
+        logs: [{ text: `Tavolo Poker Dice pronto (${gameMode === 'yahtzee' ? 'Stile Yahtzee' : gameMode === 'betting' ? 'Con puntate' : 'Normale'}). Buon divertimento!`, highlight: false }],
         chatLogs: [],
         lastEvent: null
       });
     }
 
-    async function joinRoomProcess(name, code, targetScoreFromInput, isPageReload = false) {
+    async function joinRoomProcess(name, code, gameModeFromInput, targetScoreFromInput, bettingSettings, isPageReload = false) {
       roomCode = code;
       try {
         let response = await supabaseClient.from('rooms').select('*').eq('code', roomCode).maybeSingle();
@@ -1363,14 +2456,23 @@
 
         let data = response.data;
         if (!data) {
+          const gMode = gameModeFromInput || 'normal';
           const tScore = targetScoreFromInput || 5000;
-          initializeNewRoomGame(name, tScore);
+          initializeNewRoomGame(name, gMode, tScore, bettingSettings);
           TARGET_SCORE = tScore;
-          await supabaseClient.from('rooms').insert([{ code: roomCode, state: GameState }]);
+          const { error } = await supabaseClient.from('rooms').insert([{ code: roomCode, state: GameState }]);
+          if (error) throw error;
         } else {
           if (!data.state) throw new Error("Stato stanza non valido.");
           Object.assign(GameState, data.state);
           TARGET_SCORE = GameState.targetScore || 5000;
+          if (GameState.gameMode === 'betting' && !GameState.betState) {
+            GameState.betState = createBetState(
+              Object.fromEntries(Object.keys(GameState.playerIds).map(id => [id, 50])),
+              { startingChips: 50, smallBet: 2, bigBet: 4 }
+            );
+            GameState.phase = 'waiting';
+          }
           
           let existingPlayerIndex = -1;
           for (let i = 1; i <= GameState.numPlayers; i++) {
@@ -1378,11 +2480,27 @@
           }
 
           if (existingPlayerIndex === -1) {
+            if (GameState.gameMode === 'betting' && GameState.numPlayers >= 6) {
+              throw new Error("Il tavolo con puntate accetta al massimo 6 giocatori.");
+            }
             GameState.numPlayers++;
             GameState.playerIds[GameState.numPlayers] = myPlayerId;
             GameState.playerNames[GameState.numPlayers] = name;
             GameState.scores[GameState.numPlayers] = 0;
-            await supabaseClient.from('rooms').update({ state: GameState }).eq('code', roomCode);
+            if (!GameState.yahtzeeScorecards) GameState.yahtzeeScorecards = {};
+            GameState.yahtzeeScorecards[GameState.numPlayers] = {};
+            if (!GameState.yahtzeeBonuses) GameState.yahtzeeBonuses = {};
+            GameState.yahtzeeBonuses[GameState.numPlayers] = 0;
+            if (GameState.gameMode === 'betting') {
+              GameState.betState.bankrolls[GameState.numPlayers] = GameState.betState.startingChips;
+              GameState.betState.hands[GameState.numPlayers] = [];
+              GameState.betState.contributions[GameState.numPlayers] = 0;
+            }
+            const { error } = await supabaseClient.from('rooms').update({ state: GameState }).eq('code', roomCode);
+            if (error) throw error;
+            if (GameState.gameMode === 'betting' && GameState.betState.awaitingPlayers && GameState.numPlayers >= 2) {
+              startBettingHand(false);
+            }
           }
         }
 
@@ -1390,6 +2508,8 @@
         setCookie("poker_dice_room_code", roomCode);
         localStorage.setItem("poker_dice_player_name", name);
         localStorage.setItem("poker_dice_room_code", roomCode);
+        setSelectedGameMode(GameState.gameMode);
+        localStorage.setItem("poker_dice_game_mode", GameState.gameMode);
 
         roomModal.classList.add('hidden');
         roomBadge.textContent = `Tavolo: ${roomCode}`;
@@ -1424,10 +2544,24 @@
     btnJoinRoom.addEventListener('click', async () => {
       const name = inputPlayerName.value.trim();
       const code = inputRoomCode.value.trim();
+      const gMode = selectedGameMode;
       if (!name || !code) { alert("Inserisci nome e codice tavolo!"); return; }
       triggerHaptic(25);
       const tScore = parseInt(inputTargetScore.value) || 5000;
-      await joinRoomProcess(name, code, tScore, false);
+      if (gMode === 'betting') {
+        const startingChips = Number(inputStartingChips.value);
+        const smallBet = Number(inputSmallBet.value);
+        const bigBet = Number(inputBigBet.value);
+        if (!Number.isInteger(startingChips) || startingChips < 2 ||
+            !Number.isInteger(smallBet) || smallBet < 1 ||
+            !Number.isInteger(bigBet) || bigBet < smallBet || startingChips < bigBet) {
+          alert("Inserisci fiches iniziali valide e puntate intere: la puntata grande deve essere almeno pari alla piccola e coperta dal bankroll.");
+          return;
+        }
+        await joinRoomProcess(name, code, gMode, tScore, { startingChips, smallBet, bigBet }, false);
+      } else {
+        await joinRoomProcess(name, code, gMode, tScore, null, false);
+      }
     });
 
     if (btnLeaveRoom) {
@@ -1446,8 +2580,12 @@
       roomBadge.addEventListener('click', () => {
         if (!roomCode) return;
         triggerHaptic(20);
-        openEditPlayersModal();
-      });
+      if (GameState.gameMode === 'betting') {
+        alert("In modalità con puntate non è possibile cambiare i giocatori durante una partita.");
+        return;
+      }
+      openEditPlayersModal();
+    });
     }
 
     if (btnCancelEditPlayers) btnCancelEditPlayers.addEventListener('click', () => editPlayersModal.classList.add('hidden'));
@@ -1459,25 +2597,29 @@
         checkboxes.forEach(cb => { if (cb.checked) selectedIndices.push(parseInt(cb.getAttribute('data-player-index'))); });
         if (selectedIndices.length === 0) { alert("Seleziona almeno un giocatore!"); return; }
 
-        const newIds = {}, newNames = {}, newScores = {};
+        const newIds = {}, newNames = {}, newScores = {}, newScorecards = {}, newBonuses = {};
         let count = 0;
         selectedIndices.forEach(oldIdx => {
           count++;
           newIds[count] = GameState.playerIds[oldIdx];
           newNames[count] = GameState.playerNames[oldIdx];
           newScores[count] = GameState.scores[oldIdx];
+          if (GameState.yahtzeeScorecards) newScorecards[count] = GameState.yahtzeeScorecards[oldIdx] || {};
+          if (GameState.yahtzeeBonuses) newBonuses[count] = GameState.yahtzeeBonuses[oldIdx] || 0;
         });
 
         GameState.numPlayers = count;
         GameState.playerIds = newIds;
         GameState.playerNames = newNames;
         GameState.scores = newScores;
+        GameState.yahtzeeScorecards = newScorecards;
+        GameState.yahtzeeBonuses = newBonuses;
         if (GameState.activePlayer > GameState.numPlayers) GameState.activePlayer = 1;
 
         editPlayersModal.classList.add('hidden');
         initScoreboard();
         updateUI();
-        saveStateToCloud();
+        saveStateToCloud("Giocatori aggiornati!");
       });
     }
 
@@ -1492,11 +2634,19 @@
       if (savedRoom) inputRoomCode.value = savedRoom;
 
       if (savedName && savedRoom) {
-        await joinRoomProcess(savedName, savedRoom, 5000, true);
+        await joinRoomProcess(savedName, savedRoom, selectedGameMode, 5000, null, true);
       }
 
       btnRoll.addEventListener('click', () => { if (isMyTurn()) triggerHaptic(20); sound.init(); rollDice(); });
       btnBank.addEventListener('click', () => { if (isMyTurn()) triggerHaptic(20); bankPoints(); });
+      btnBetCheck.addEventListener('click', () => performBettingAction('check'));
+      btnBetOpen.addEventListener('click', () => performBettingAction('bet'));
+      btnBetCall.addEventListener('click', () => performBettingAction('call'));
+      btnBetRaise.addEventListener('click', () => performBettingAction('raise'));
+      btnBetFold.addEventListener('click', () => performBettingAction('fold'));
+
+      if (btnOpenYahtzeeTable) btnOpenYahtzeeTable.addEventListener('click', openYahtzeeScorecardModal);
+      if (btnCloseYahtzeeModal) btnCloseYahtzeeModal.addEventListener('click', () => yahtzeeScorecardModal.classList.add('hidden'));
 
       btnNewGame.addEventListener('click', () => { triggerHaptic(20); openNewGameModal(); });
       btnCancelNewGame.addEventListener('click', () => newGameModal.classList.add('hidden'));
@@ -1506,26 +2656,27 @@
         const selectedIndices = [];
         checkboxes.forEach(cb => { if (cb.checked) selectedIndices.push(parseInt(cb.getAttribute('data-player-index'))); });
         if (selectedIndices.length === 0) { alert("Seleziona almeno un giocatore!"); return; }
+        if (GameState.gameMode === 'betting' && selectedIndices.length < 2) {
+          alert("La modalità con puntate richiede almeno 2 giocatori.");
+          return;
+        }
         newGameModal.classList.add('hidden');
         startNewGame(selectedIndices);
       });
 
-      const presetBtns = document.querySelectorAll('.preset-score-btn');
-      presetBtns.forEach(btn => {
-        btn.addEventListener('click', () => {
-          triggerHaptic(15);
-          if (targetScoreInput) targetScoreInput.value = btn.getAttribute('data-value');
-        });
+      btnLeaderboard.addEventListener('click', () => {
+        triggerHaptic(20);
+        renderLeaderboard();
+        leaderboardModal.classList.remove('hidden');
       });
-
-      if (btnTargetScoreHeader) btnTargetScoreHeader.addEventListener('click', openTargetScoreModal);
-      if (btnTargetScoreMobile) btnTargetScoreMobile.addEventListener('click', openTargetScoreModal);
-      if (btnCancelTargetScore) btnCancelTargetScore.addEventListener('click', closeTargetScoreModal);
-      if (btnSaveTargetScore) btnSaveTargetScore.addEventListener('click', saveTargetScoreFromModal);
-
-      btnLeaderboard.addEventListener('click', () => { triggerHaptic(20); leaderboardModal.classList.remove('hidden'); });
       btnCloseLeaderboard.addEventListener('click', () => leaderboardModal.classList.add('hidden'));
-      btnRules.addEventListener('click', () => { triggerHaptic(20); rulesModal.classList.remove('hidden'); });
+      btnRules.addEventListener('click', () => {
+        triggerHaptic(20);
+        const showBettingRules = GameState.gameMode === 'betting' || (!roomCode && selectedGameMode === 'betting');
+        bettingRulesSection.classList.toggle('hidden', !showBettingRules);
+        yahtzeeRulesSection.classList.toggle('hidden', showBettingRules);
+        rulesModal.classList.remove('hidden');
+      });
       btnCloseRules.addEventListener('click', () => rulesModal.classList.add('hidden'));
       btnGotItRules.addEventListener('click', () => rulesModal.classList.add('hidden'));
       btnRestartWin.addEventListener('click', () => { winModal.classList.add('hidden'); openNewGameModal(); });
