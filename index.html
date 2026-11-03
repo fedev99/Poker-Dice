@@ -2837,6 +2837,13 @@
         lucide.createIcons();
       });
     };
+
+    if ('serviceWorker' in navigator && window.isSecureContext) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js', { scope: './' })
+          .catch(error => console.error('Registrazione del Service Worker non riuscita:', error));
+      }, { once: true });
+    }
   </script>
 </body>
 </html>
