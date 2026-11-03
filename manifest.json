@@ -2,6 +2,7 @@
   "name": "Poker Dice",
   "short_name": "Poker Dice",
   "description": "Un gioco di dadi stile Poker giocabile online con gli amici.",
+  "id": "./",
   "start_url": "./index.html",
   "display": "standalone",
   "background_color": "#060709",
