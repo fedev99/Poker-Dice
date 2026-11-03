@@ -221,6 +221,7 @@
         <div>
           <label class="text-[10px] uppercase font-bold text-zinc-400 block mb-1">Codice Tavolo</label>
           <input id="inputRoomCode" type="text" placeholder="Es. pokerroom1" class="w-full bg-zinc-950 border border-zinc-700 rounded-xl px-3 py-2 text-white font-semibold text-sm focus:outline-none focus:border-emerald-400" />
+          <p id="roomCodeHint" class="text-[10px] mt-1 hidden"></p>
         </div>
         <div id="containerTargetScore">
           <label class="text-[10px] uppercase font-bold text-amber-400 block mb-1">Punteggio Obiettivo (Modalità Normale)</label>
@@ -244,6 +245,27 @@
       </div>
 
       <button id="btnJoinRoom" class="w-full mt-5 py-3.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-zinc-950 font-black text-sm font-display shadow-lg shadow-emerald-500/25 active:scale-95 transition">Entra nel Tavolo</button>
+    </div>
+  </div>
+
+  <!-- MODALE IMPOSTA PUNTEGGIO OBIETTIVO (Solo Normale) -->
+  <div id="targetScoreModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-zinc-900 border border-zinc-700 rounded-2xl p-5 max-w-sm w-full text-center">
+      <div class="flex items-center gap-2 mb-2 text-amber-400 justify-center">
+        <i data-lucide="target" class="w-5 h-5"></i>
+        <h3 class="text-base font-bold text-amber-300 font-display">Imposta Obiettivo</h3>
+      </div>
+      <p class="text-xs text-zinc-400 mb-4">Modifica il punteggio da raggiungere per vincere la partita.</p>
+      
+      <div class="text-left mb-4">
+        <label class="text-[10px] uppercase font-bold text-amber-400 block mb-1">Nuovo Punteggio Target</label>
+        <input id="inputChangeTargetScore" type="number" step="500" min="1000" class="w-full bg-zinc-950 border border-amber-500/60 rounded-xl px-3 py-2 text-amber-300 font-semibold text-sm focus:outline-none focus:border-amber-400" />
+      </div>
+      
+      <div class="flex gap-2">
+        <button id="btnCancelTargetScore" class="flex-1 py-2.5 rounded-xl bg-zinc-800 text-zinc-300 font-bold text-xs">Annulla</button>
+        <button id="btnConfirmTargetScore" class="flex-1 py-2.5 rounded-xl bg-amber-500 text-zinc-950 font-bold text-xs hover:bg-amber-400">Aggiorna</button>
+      </div>
     </div>
   </div>
 
@@ -398,17 +420,23 @@
         <span>Registra mano</span>
       </button>
 
-      <button id="btnLeaderboard" class="p-2 sm:px-3 sm:py-2 rounded-xl bg-zinc-900 border border-zinc-800 text-emerald-300 text-xs font-semibold flex items-center gap-1">
+      <!-- Bottone Obiettivo (Visibile solo in modalità Normale) -->
+      <button id="btnTargetScore" class="hidden p-2 sm:px-3 sm:py-2 rounded-xl bg-zinc-900 border border-zinc-800 text-amber-300 text-xs font-semibold flex items-center gap-1 transition hover:border-amber-500/50">
+        <i data-lucide="target" class="w-4 h-4 text-amber-300"></i>
+        <span class="hidden sm:inline">Obiettivo</span>
+      </button>
+
+      <button id="btnLeaderboard" class="p-2 sm:px-3 sm:py-2 rounded-xl bg-zinc-900 border border-zinc-800 text-emerald-300 text-xs font-semibold flex items-center gap-1 transition hover:border-emerald-500/50">
         <i data-lucide="trophy" class="w-4 h-4 text-emerald-300"></i>
         <span class="text-[9px] leading-tight text-left max-w-[72px]" id="leaderboardButtonLabel">Classifica</span>
       </button>
 
-      <button id="btnRules" class="p-2 sm:px-3 sm:py-2 rounded-xl bg-zinc-900 border border-zinc-800 text-purple-300 text-xs font-semibold flex items-center gap-1">
+      <button id="btnRules" class="p-2 sm:px-3 sm:py-2 rounded-xl bg-zinc-900 border border-zinc-800 text-purple-300 text-xs font-semibold flex items-center gap-1 transition hover:border-purple-500/50">
         <i data-lucide="book-open" class="w-4 h-4 text-purple-300"></i>
         <span class="hidden sm:inline">Regole</span>
       </button>
 
-      <button id="btnNewGame" class="p-2 sm:px-3 sm:py-2 rounded-xl bg-zinc-900 border border-red-900/60 text-red-300 text-xs font-semibold flex items-center gap-1">
+      <button id="btnNewGame" class="p-2 sm:px-3 sm:py-2 rounded-xl bg-zinc-900 border border-red-900/60 text-red-300 text-xs font-semibold flex items-center gap-1 transition hover:border-red-500/50">
         <i data-lucide="rotate-ccw" class="w-4 h-4 text-red-300"></i>
       </button>
     </div>
@@ -1177,6 +1205,7 @@
       : 'normal';
     const inputPlayerName = document.getElementById('inputPlayerName');
     const inputRoomCode = document.getElementById('inputRoomCode');
+    const roomCodeHint = document.getElementById('roomCodeHint');
     const btnJoinRoom = document.getElementById('btnJoinRoom');
     const roomBadge = document.getElementById('roomBadge');
     const containerTargetScore = document.getElementById('containerTargetScore');
@@ -1224,9 +1253,16 @@
     const btnBetCall = document.getElementById('btnBetCall');
     const btnBetRaise = document.getElementById('btnBetRaise');
     const btnBetFold = document.getElementById('btnBetFold');
+    
     const bettingRulesSection = document.getElementById('bettingRulesSection');
     const yahtzeeRulesSection = document.getElementById('yahtzeeRulesSection');
     const normalRulesSection = document.getElementById('normalRulesSection');
+
+    const btnTargetScore = document.getElementById('btnTargetScore');
+    const targetScoreModal = document.getElementById('targetScoreModal');
+    const inputChangeTargetScore = document.getElementById('inputChangeTargetScore');
+    const btnCancelTargetScore = document.getElementById('btnCancelTargetScore');
+    const btnConfirmTargetScore = document.getElementById('btnConfirmTargetScore');
 
     const chatLogContainer = document.getElementById('chatLogContainer');
     const chatForm = document.getElementById('chatForm');
@@ -1258,6 +1294,60 @@
       button.addEventListener('click', () => setSelectedGameMode(button.dataset.gameMode));
     });
     setSelectedGameMode(selectedGameMode);
+
+    let roomCheckTimeout;
+    if (inputRoomCode) {
+      inputRoomCode.addEventListener('input', () => {
+        clearTimeout(roomCheckTimeout);
+        const code = inputRoomCode.value.trim();
+        if (!code) {
+          roomCodeHint.classList.add('hidden');
+          return;
+        }
+        roomCheckTimeout = setTimeout(async () => {
+          const { data } = await supabaseClient.from('rooms').select('code').eq('code', code).maybeSingle();
+          if (data) {
+            roomCodeHint.textContent = "Stanza esistente: ti unirai al tavolo.";
+            roomCodeHint.classList.remove('hidden', 'text-amber-400');
+            roomCodeHint.classList.add('text-emerald-400');
+          } else {
+            roomCodeHint.textContent = "Stanza nuova: verrà creata.";
+            roomCodeHint.classList.remove('hidden', 'text-emerald-400');
+            roomCodeHint.classList.add('text-amber-400');
+          }
+        }, 600);
+      });
+    }
+
+    if (btnTargetScore) {
+      btnTargetScore.addEventListener('click', () => {
+        triggerHaptic(20);
+        inputChangeTargetScore.value = GameState.targetScore || TARGET_SCORE;
+        targetScoreModal.classList.remove('hidden');
+      });
+    }
+
+    if (btnCancelTargetScore) {
+      btnCancelTargetScore.addEventListener('click', () => {
+        targetScoreModal.classList.add('hidden');
+      });
+    }
+
+    if (btnConfirmTargetScore) {
+      btnConfirmTargetScore.addEventListener('click', () => {
+        triggerHaptic(20);
+        const newScore = parseInt(inputChangeTargetScore.value);
+        if (newScore && newScore >= 1000) {
+          GameState.targetScore = newScore;
+          TARGET_SCORE = newScore;
+          targetScoreModal.classList.add('hidden');
+          saveStateToCloud(`Punteggio obiettivo aggiornato a ${newScore} pt`);
+          updateUI();
+        } else {
+          showQuickToast("Inserisci un punteggio valido (min. 1000).", "⚠️");
+        }
+      });
+    }
 
     function openEditPlayersModal() {
       editPlayerSelectList.innerHTML = '';
@@ -1428,6 +1518,12 @@
     function updateUI() {
       if (newGameModal && !newGameModal.classList.contains('hidden')) newGameModal.classList.add('hidden');
       if (editPlayersModal && !editPlayersModal.classList.contains('hidden')) editPlayersModal.classList.add('hidden');
+
+      if (GameState.gameMode === 'normal') {
+        if (btnTargetScore) btnTargetScore.classList.remove('hidden');
+      } else {
+        if (btnTargetScore) btnTargetScore.classList.add('hidden');
+      }
 
       if (GameState.gameMode === 'yahtzee') {
         if (btnOpenYahtzeeTable) btnOpenYahtzeeTable.classList.add('hidden');
@@ -2436,7 +2532,7 @@
       GameState.dice.forEach(d => { if (d.status === 'selected' || d.locked) selectedDiceValues.push(d.value); });
       
       if (selectedDiceValues.length === 0) {
-        alert("Seleziona almeno un dado prima di registrare il punteggio!");
+        showQuickToast("Seleziona almeno un dado prima di registrare il punteggio!", "⚠️");
         return;
       }
 
@@ -2562,7 +2658,7 @@
 
     function startNewGame(selectedPlayerIndices) {
       if (GameState.gameMode === 'betting' && (selectedPlayerIndices.length < 2 || selectedPlayerIndices.length > 6)) {
-        alert("La modalità con puntate richiede da 2 a 6 giocatori.");
+        showQuickToast("La modalità con puntate richiede da 2 a 6 giocatori.", "⚠️");
         return;
       }
       triggerHaptic(30);
@@ -2738,7 +2834,7 @@
         updateUI();
         return true;
       } catch (err) {
-        alert(`Errore di connessione: ${err.message || err}`);
+        showQuickToast(`Errore: ${err.message || err}`, "⚠️");
         return false;
       }
     }
@@ -2747,7 +2843,10 @@
       const name = inputPlayerName.value.trim();
       const code = inputRoomCode.value.trim();
       const gMode = selectedGameMode;
-      if (!name || !code) { alert("Inserisci nome e codice tavolo!"); return; }
+      if (!name || !code) { 
+        showQuickToast("Inserisci nome e codice tavolo!", "⚠️"); 
+        return; 
+      }
       triggerHaptic(25);
       const tScore = parseInt(inputTargetScore.value) || 5000;
       if (gMode === 'betting') {
@@ -2757,7 +2856,7 @@
         if (!Number.isInteger(startingChips) || startingChips < 2 ||
             !Number.isInteger(smallBet) || smallBet < 1 ||
             !Number.isInteger(bigBet) || bigBet < smallBet || startingChips < bigBet) {
-          alert("Inserisci fiches iniziali valide e puntate intere: la puntata grande deve essere almeno pari alla piccola e coperta dal bankroll.");
+          showQuickToast("Inserisci fiches iniziali e puntate valide!", "⚠️");
           return;
         }
         await joinRoomProcess(name, code, gMode, tScore, { startingChips, smallBet, bigBet }, false);
@@ -2784,7 +2883,7 @@
         if (!roomCode) return;
         triggerHaptic(20);
       if (GameState.gameMode === 'betting') {
-        alert("In modalità con puntate non è possibile cambiare i giocatori durante una partita.");
+        showQuickToast("Non è possibile modificare i giocatori nella partita a fiches.", "⚠️");
         return;
       }
       openEditPlayersModal();
@@ -2798,7 +2897,10 @@
         const checkboxes = editPlayerSelectList.querySelectorAll('input[type="checkbox"]');
         const selectedIndices = [];
         checkboxes.forEach(cb => { if (cb.checked) selectedIndices.push(parseInt(cb.getAttribute('data-player-index'))); });
-        if (selectedIndices.length === 0) { alert("Seleziona almeno un giocatore!"); return; }
+        if (selectedIndices.length === 0) { 
+          showQuickToast("Seleziona almeno un giocatore!", "⚠️"); 
+          return; 
+        }
 
         const newIds = {}, newNames = {}, newScores = {}, newScorecards = {}, newBonuses = {};
         let count = 0;
@@ -2858,9 +2960,12 @@
         const checkboxes = playerSelectList.querySelectorAll('input[type="checkbox"]');
         const selectedIndices = [];
         checkboxes.forEach(cb => { if (cb.checked) selectedIndices.push(parseInt(cb.getAttribute('data-player-index'))); });
-        if (selectedIndices.length === 0) { alert("Seleziona almeno un giocatore!"); return; }
+        if (selectedIndices.length === 0) { 
+          showQuickToast("Seleziona almeno un giocatore!", "⚠️"); 
+          return; 
+        }
         if (GameState.gameMode === 'betting' && selectedIndices.length < 2) {
-          alert("La modalità con puntate richiede almeno 2 giocatori.");
+          showQuickToast("La modalità con puntate richiede almeno 2 giocatori.", "⚠️");
           return;
         }
         newGameModal.classList.add('hidden');
