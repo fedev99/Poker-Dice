@@ -8,7 +8,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <link rel="manifest" href="manifest.json">
-  <title>Poker Dice Online</title>
+  <title>Poker Dice</title>
   <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- Google Fonts: Inter & Outfit -->
@@ -115,6 +115,35 @@
     }
     .dice-container.selected { transform: translateY(-8px) scale(1.05); }
 
+    .betting-dice-row { display: flex; align-items: center; gap: 3px; margin-top: 5px; }
+    .betting-die {
+      display: inline-flex;
+      width: 22px;
+      height: 22px;
+      align-items: center;
+      justify-content: center;
+      border: 1px solid rgba(16, 185, 129, 0.35);
+      border-radius: 6px;
+      background: linear-gradient(135deg, #181920 0%, #0e0f13 100%);
+      box-shadow: inset 0 1px 3px rgba(255,255,255,0.08), 0 2px 5px rgba(0,0,0,0.6);
+      font-family: 'Outfit', sans-serif;
+      font-size: 0.75rem;
+      font-weight: 900;
+      line-height: 1;
+    }
+    .betting-die[data-value="1"] { color: #94a3b8; }
+    .betting-die[data-value="2"] { color: #38bdf8; }
+    .betting-die[data-value="3"] { color: #34d399; }
+    .betting-die[data-value="4"] { color: #f472b6; }
+    .betting-die[data-value="5"] { color: #fb923c; }
+    .betting-die[data-value="6"] { color: #ef4444; }
+    .betting-die.kept {
+      border-color: #10b981;
+      background: radial-gradient(circle at 35% 35%, #064e3b 0%, #022c22 60%, #0d0c06 100%);
+      box-shadow: 0 0 8px rgba(16, 185, 129, 0.35);
+      transform: translateY(-2px);
+    }
+
     @keyframes tumble {
       0% { transform: rotateX(0deg) rotateY(0deg) rotateZ(0deg); }
       50% { transform: rotateX(720deg) rotateY(540deg) rotateZ(180deg); }
@@ -157,7 +186,7 @@
   <div id="roomModal" class="fixed inset-0 bg-zinc-950/95 backdrop-blur-md z-50 flex items-center justify-center p-4">
     <div class="bg-zinc-900 border border-zinc-700 rounded-3xl p-6 max-w-sm w-full shadow-2xl text-center">
       <div class="w-14 h-14 mx-auto mb-3 rounded-2xl bg-gradient-to-br from-emerald-400 to-teal-600 flex items-center justify-center shadow-lg shadow-emerald-500/25 text-zinc-950 font-black text-2xl font-display">♠</div>
-      <h2 class="text-xl font-black text-white font-display mb-1">POKER DICE ONLINE</h2>
+      <h2 class="text-xl font-black text-white font-display mb-1">POKER DICE</h2>
       <p class="text-xs text-zinc-400 mb-4">Scegli la modalità e accedi al tavolo</p>
       
       <div class="space-y-3 text-left">
@@ -488,7 +517,7 @@
   </main>
 
   <footer class="w-full text-center py-3 border-t border-zinc-900 text-zinc-500 text-xs font-medium tracking-wide">
-    Poker Dice Online • Creato da Tex Willa
+    Poker Dice • Creato da Tex Willa
   </footer>
 
   <!-- WIN MODAL -->
@@ -637,8 +666,11 @@
     localStorage.setItem("poker_dice_my_id", myPlayerId);
 
     let lastEventId = null;
-    const writeQueue = [];
+    let pendingRoomWrite = null;
     let isProcessingQueue = false;
+    let writeRetryTimer = null;
+    let roomChannel = null;
+    let roomRefreshTimer = null;
 
     window.addEventListener('online', syncWriteQueue);
     window.addEventListener('offline', updateConnectionStatus);
@@ -655,9 +687,9 @@
       if (eventMsg) {
         GameState.lastEvent = { id: Math.random().toString(36).substring(2, 9), msg: eventMsg };
       }
-      writeQueue.push({ roomCode: roomCode, statePayload: JSON.parse(JSON.stringify(GameState)) });
+      pendingRoomWrite = { roomCode: roomCode, statePayload: JSON.parse(JSON.stringify(GameState)) };
       if (navigator.onLine) {
-        syncWriteQueue().catch(e => console.error("Errore sync:", e));
+        syncWriteQueue();
       } else {
         updateConnectionStatus();
       }
@@ -665,16 +697,31 @@
 
     async function syncWriteQueue() {
       updateConnectionStatus();
-      if (isProcessingQueue || writeQueue.length === 0 || !navigator.onLine) return;
+      if (isProcessingQueue || !pendingRoomWrite || !navigator.onLine) return;
       isProcessingQueue = true;
 
-      while (writeQueue.length > 0) {
-        const item = writeQueue[0];
+      while (pendingRoomWrite && navigator.onLine) {
+        const item = pendingRoomWrite;
+        pendingRoomWrite = null;
         try {
-          const { error } = await supabaseClient.from('rooms').update({ state: item.statePayload }).eq('code', item.roomCode);
-          if (!error) writeQueue.shift();
-          else await new Promise(r => setTimeout(r, 2000));
-        } catch (e) { break; }
+          const { data, error } = await supabaseClient.from('rooms')
+            .update({ state: item.statePayload })
+            .eq('code', item.roomCode)
+            .select('code')
+            .maybeSingle();
+          if (error) throw error;
+          if (!data) throw new Error(`Il tavolo ${item.roomCode} non esiste più.`);
+        } catch (error) {
+          console.error("Errore sync:", error);
+          if (!pendingRoomWrite) pendingRoomWrite = item;
+          if (!writeRetryTimer) {
+            writeRetryTimer = setTimeout(() => {
+              writeRetryTimer = null;
+              syncWriteQueue();
+            }, 2000);
+          }
+          break;
+        }
       }
       isProcessingQueue = false;
     }
@@ -809,6 +856,7 @@
       round: 1,
       rollsLeft: 3,
       phase: 'ready',
+      rollingDice: [],
       dice: [
         { value: 6, status: 'free' },
         { value: 6, status: 'free' },
@@ -851,6 +899,72 @@
         if (GameState.playerIds[i] === senderId) return PLAYER_COLORS[(i - 1) % PLAYER_COLORS.length];
       }
       return '#9ca3af';
+    }
+
+    function applyRoomState(newState) {
+      if (!newState || JSON.stringify(GameState) === JSON.stringify(newState)) return;
+      const newEvent = newState.lastEvent;
+      Object.assign(GameState, newState);
+      if (!GameState.chatLogs) GameState.chatLogs = [];
+      if (newEvent && newEvent.id !== lastEventId) {
+        lastEventId = newEvent.id;
+        if (!isMyTurn()) showQuickToast(newEvent.msg);
+      }
+      TARGET_SCORE = GameState.targetScore || 5000;
+      renderChatHistory();
+      initScoreboard();
+      updateUI();
+    }
+
+    async function refreshRoomState(expectedRoomCode = roomCode) {
+      if (!expectedRoomCode || expectedRoomCode !== roomCode || !navigator.onLine) return;
+      try {
+        const { data, error } = await supabaseClient.from('rooms')
+          .select('state')
+          .eq('code', expectedRoomCode)
+          .maybeSingle();
+        if (error) throw error;
+        if (expectedRoomCode === roomCode && data && data.state) applyRoomState(data.state);
+      } catch (error) {
+        console.error("Errore aggiornamento tavolo:", error);
+      }
+    }
+
+    function stopRoomSync() {
+      if (roomRefreshTimer) {
+        clearInterval(roomRefreshTimer);
+        roomRefreshTimer = null;
+      }
+      if (roomChannel) {
+        supabaseClient.removeChannel(roomChannel);
+        roomChannel = null;
+      }
+    }
+
+    function startRoomSync() {
+      stopRoomSync();
+      const subscribedRoomCode = roomCode;
+      roomRefreshTimer = setInterval(() => refreshRoomState(subscribedRoomCode), 3000);
+      roomChannel = supabaseClient.channel('room-sync-' + subscribedRoomCode)
+        .on('postgres_changes', {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'rooms',
+          filter: `code=eq.${subscribedRoomCode}`
+        }, payload => {
+          if (subscribedRoomCode === roomCode && payload.new && payload.new.state) {
+            applyRoomState(payload.new.state);
+          }
+        })
+        .subscribe((status, error) => {
+          if (status === 'SUBSCRIBED') {
+            refreshRoomState(subscribedRoomCode);
+          } else {
+            if (error || status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+              console.error(`Realtime tavolo non disponibile (${status}):`, error || 'errore canale');
+            }
+          }
+        });
     }
 
     function getCounts(values) {
@@ -1239,7 +1353,7 @@
             <span class="text-lg sm:text-xl font-extrabold text-white font-display" id="scoreP${i}">0</span>
             <span class="text-[9px] text-zinc-400" id="subP${i}">pt</span>
           </div>
-          <p id="handP${i}" class="hidden mt-1 truncate text-[9px] font-semibold text-cyan-300"></p>
+          <div id="handP${i}" class="hidden mt-1"></div>
           <div class="w-full bg-zinc-800 rounded-full h-1 mt-1 overflow-hidden">
             <div id="barP${i}" class="h-full rounded-full transition-all duration-300" style="width: 0%; background-color: ${playerColor}"></div>
           </div>
@@ -1260,6 +1374,25 @@
     function applyCubeRotation(cubeEl, faceNumber) {
       const rot = faceRotations[faceNumber] || { x: 0, y: 0 };
       cubeEl.style.transform = `rotateX(${rot.x}deg) rotateY(${rot.y}deg)`;
+    }
+
+    function createBettingDiceRow(dice, playerName) {
+      const row = document.createElement('div');
+      row.className = 'betting-dice-row';
+      row.setAttribute('role', 'group');
+      row.setAttribute('aria-label', `Dadi di ${playerName}`);
+      dice.forEach(die => {
+        const value = typeof die === 'number' ? die : die.value;
+        const kept = typeof die !== 'number' && die.status === 'selected';
+        const face = document.createElement('span');
+        face.className = `betting-die${kept ? ' kept' : ''}`;
+        face.dataset.value = String(value);
+        face.textContent = POKER_FACES[value] || '?';
+        face.title = `Dado ${POKER_FACES[value] || 'sconosciuto'}${kept ? ' · bloccato' : ''}`;
+        face.setAttribute('aria-label', face.title);
+        row.appendChild(face);
+      });
+      return row;
     }
 
     function updateUI() {
@@ -1316,13 +1449,19 @@
         if (betState) {
           const hand = betState.hands[i];
           const handIsRevealed = betState.revealedPlayers && betState.revealedPlayers.includes(i);
-          handEl.classList.toggle('hidden', hasFolded || !handIsRevealed || !hand || hand.length !== 5);
-          handEl.textContent = !hasFolded && handIsRevealed && hand && hand.length === 5
-            ? `${hand.map(die => POKER_FACES[die.value]).join(' · ')} · ${evaluateBettingHand(hand.map(die => die.value)).label}`
-            : '';
+          const showHand = !hasFolded && handIsRevealed && hand && hand.length === 5;
+          handEl.classList.toggle('hidden', !showHand);
+          handEl.replaceChildren();
+          if (showHand) {
+            handEl.appendChild(createBettingDiceRow(hand, getPlayerName(i)));
+            const handLabel = document.createElement('p');
+            handLabel.className = 'mt-1 truncate text-[9px] font-semibold text-cyan-300';
+            handLabel.textContent = evaluateBettingHand(hand.map(die => die.value)).label;
+            handEl.appendChild(handLabel);
+          }
         } else {
           handEl.classList.add('hidden');
-          handEl.textContent = '';
+          handEl.replaceChildren();
         }
         const maxBarVal = betState ? betState.startingChips : GameState.gameMode === 'yahtzee' ? 600 : TARGET_SCORE;
         barEl.style.width = Math.min(100, (currentScore / maxBarVal) * 100) + '%';
@@ -1447,6 +1586,8 @@
           sub.className = 'dice-sub text-[9px] text-center font-bold text-zinc-500 mt-1 uppercase';
         }
         applyCubeRotation(cubeElements[idx], d.value);
+        const rollingDice = GameState.rollingDice || [];
+        cubeElements[idx].classList.toggle('is-rolling', GameState.phase === 'rolling' && rollingDice.includes(idx));
       });
 
       roundCounterEl.textContent = `Round ${GameState.round} • ${getPlayerName(GameState.activePlayer)}`;
@@ -1573,6 +1714,7 @@
       });
       GameState.round = betState.handNumber;
       GameState.rollsLeft = 1;
+      GameState.rollingDice = [];
       GameState.activePlayer = nextBettingPlayer(betState.dealerPlayer, fundedPlayers);
       copyBettingHandToTable(GameState.activePlayer);
       GameState.phase = 'ready';
@@ -1835,14 +1977,22 @@
           stack.textContent = `${bankroll} fiches`;
           header.append(name, stack);
           row.appendChild(header);
-          const hand = document.createElement('p');
+          const hand = document.createElement('div');
           const handIsRevealed = betState.revealedPlayers && betState.revealedPlayers.includes(player.id);
-          hand.className = `mt-1 text-[11px] ${handIsRevealed ? 'text-cyan-300' : 'text-zinc-500'}`;
-          hand.textContent = betState.folded.includes(player.id)
-            ? 'Mano abbandonata · dadi riposti'
-            : handIsRevealed && handValues.length === 5
-              ? `${handValues.map(value => POKER_FACES[value]).join(' · ')} — ${evaluateBettingHand(handValues).label}`
-              : 'In attesa del primo lancio';
+          const playerHand = betState.hands[player.id] || [];
+          if (betState.folded.includes(player.id)) {
+            hand.className = 'mt-1 text-[11px] text-zinc-500';
+            hand.textContent = 'Mano abbandonata · dadi riposti';
+          } else if (handIsRevealed && handValues.length === 5) {
+            hand.appendChild(createBettingDiceRow(playerHand, getPlayerName(player.id)));
+            const handLabel = document.createElement('p');
+            handLabel.className = 'mt-1 text-[11px] text-cyan-300';
+            handLabel.textContent = evaluateBettingHand(handValues).label;
+            hand.appendChild(handLabel);
+          } else {
+            hand.className = 'mt-1 text-[11px] text-zinc-500';
+            hand.textContent = 'In attesa del primo lancio';
+          }
           row.appendChild(hand);
           if (betState.participants.includes(player.id) && !betState.folded.includes(player.id)) {
             const investment = document.createElement('p');
@@ -2157,6 +2307,7 @@
       }
 
       GameState.phase = 'rolling';
+      GameState.rollingDice = indicesToRoll;
       sound.playDiceRoll();
       triggerHaptic(40);
       updateUI();
@@ -2176,6 +2327,7 @@
 
         indicesToRoll.forEach(index => { GameState.dice[index].status = 'free'; });
         GameState.phase = 'rolled';
+        GameState.rollingDice = [];
         GameState.rollsLeft--;
 
         const rolledValues = indicesToRoll.map(index => POKER_FACES[GameState.dice[index].value]);
@@ -2202,6 +2354,7 @@
       }
 
       GameState.phase = 'rolling';
+      GameState.rollingDice = indicesToRoll;
       updateUI();
       saveStateToCloud();
       sound.playDiceRoll();
@@ -2222,6 +2375,7 @@
         const message = `${getPlayerName(GameState.activePlayer)} lancia ${indicesToRoll.length} dadi: [ ${values.join(', ')} ] · ${evaluateBettingHand(GameState.dice.map(die => die.value)).label}`;
         addLog(message, true);
         GameState.rollsLeft = 0;
+        GameState.rollingDice = [];
         finishBettingRoll();
       }, 700);
     }
@@ -2389,6 +2543,7 @@
       GameState.round = 1;
       GameState.rollsLeft = 3;
       GameState.phase = GameState.gameMode === 'betting' ? 'waiting' : 'ready';
+      GameState.rollingDice = [];
       GameState.dice = [
         { value: 6, status: 'free' }, { value: 6, status: 'free' }, { value: 5, status: 'free' },
         { value: 4, status: 'free' }, { value: 3, status: 'free' },
@@ -2438,6 +2593,7 @@
         round: 1,
         rollsLeft: 3,
         phase: gameMode === 'betting' ? 'waiting' : 'ready',
+        rollingDice: [],
         dice: [
           { value: 6, status: 'free' }, { value: 5, status: 'free' }, { value: 4, status: 'free' },
           { value: 3, status: 'free' }, { value: 2, status: 'free' },
@@ -2496,8 +2652,13 @@
               GameState.betState.hands[GameState.numPlayers] = [];
               GameState.betState.contributions[GameState.numPlayers] = 0;
             }
-            const { error } = await supabaseClient.from('rooms').update({ state: GameState }).eq('code', roomCode);
+            const { data: updatedRoom, error } = await supabaseClient.from('rooms')
+              .update({ state: GameState })
+              .eq('code', roomCode)
+              .select('code')
+              .maybeSingle();
             if (error) throw error;
+            if (!updatedRoom) throw new Error(`Il tavolo ${roomCode} non esiste più.`);
             if (GameState.gameMode === 'betting' && GameState.betState.awaitingPlayers && GameState.numPlayers >= 2) {
               startBettingHand(false);
             }
@@ -2514,22 +2675,7 @@
         roomModal.classList.add('hidden');
         roomBadge.textContent = `Tavolo: ${roomCode}`;
 
-        supabaseClient.channel('room-sync-' + roomCode)
-          .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'rooms', filter: `code=eq.${roomCode}` }, payload => {
-            if (payload.new && payload.new.state) {
-              const newState = payload.new.state;
-              if (newState.lastEvent && newState.lastEvent.id !== lastEventId) {
-                lastEventId = newState.lastEvent.id;
-                if (!isMyTurn()) showQuickToast(newState.lastEvent.msg);
-              }
-              Object.assign(GameState, newState);
-              if (!GameState.chatLogs) GameState.chatLogs = [];
-              renderChatHistory();
-              initScoreboard();
-              updateUI();
-            }
-          })
-          .subscribe();
+        startRoomSync();
 
         renderChatHistory();
         initScoreboard();
@@ -2567,6 +2713,7 @@
     if (btnLeaveRoom) {
       btnLeaveRoom.addEventListener('click', () => {
         triggerHaptic(20);
+        stopRoomSync();
         eraseCookie("poker_dice_room_code");
         localStorage.removeItem("poker_dice_room_code");
         roomCode = null;
