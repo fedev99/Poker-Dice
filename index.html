@@ -115,6 +115,15 @@
     }
     .dice-container.selected { transform: translateY(-8px) scale(1.05); }
 
+    .dice-container.locked .cube-face {
+      border-color: #f59e0b;
+      box-shadow: 
+        inset 0 3px 6px rgba(245, 158, 11, 0.7),
+        inset 0 -4px 8px rgba(0, 0, 0, 0.9),
+        0 0 22px rgba(245, 158, 11, 0.4), 
+        0 10px 25px rgba(0, 0, 0, 0.8);
+    }
+
     .betting-dice-row { display: flex; align-items: center; gap: 3px; margin-top: 5px; }
     .betting-die {
       display: inline-flex;
@@ -549,34 +558,54 @@
         <button id="btnCloseRules" class="text-zinc-400 hover:text-white"><i data-lucide="x" class="w-5 h-5"></i></button>
       </div>
       <div class="overflow-y-auto space-y-3 py-3 text-xs text-zinc-300 pr-1">
-        <div id="yahtzeeRulesSection" class="space-y-3">
-        <p class="font-semibold text-white">Preparazione e valori</p>
-        <p>Si usano 5 dadi a sei facce: 9, 10, J, Q, K e A. Per i calcoli valgono rispettivamente <strong>9, 10, 11, 12, 13 e 14 punti</strong>. Ogni giocatore ha una tabella con 13 caselle: 6 superiori e 7 inferiori.</p>
-
-        <p class="font-semibold text-white">Turno e lanci</p>
-        <p>Al proprio turno si lanciano tutti e 5 i dadi. Si hanno fino a <strong>3 lanci complessivi</strong>: dopo ogni lancio si possono bloccare i dadi da conservare e rilanciare gli altri. Ci si può fermare prima. Al termine si deve compilare una casella ancora vuota; se il risultato non soddisfa la combinazione scelta, in quella casella si segna 0. Dopo la compilazione il turno passa al giocatore successivo.</p>
-
-        <p class="font-semibold text-amber-300">1. Sezione superiore · valori singoli</p>
-        <p>In ciascuna casella si sommano solo i dadi del valore indicato: 9, 10, J, Q, K oppure A. Gli altri dadi non contano. Se il totale delle sei caselle superiori raggiunge almeno <strong>63 punti</strong>, si aggiungono <strong>35 punti bonus</strong>.</p>
-
-        <p class="font-semibold text-cyan-300">2. Sezione inferiore · combinazioni</p>
-        <ul class="list-disc pl-4 space-y-1">
-          <li><strong>Tris:</strong> almeno 3 dadi uguali; somma di tutti e 5 i dadi.</li>
-          <li><strong>Poker (4 di un tipo):</strong> almeno 4 dadi uguali; somma di tutti e 5 i dadi.</li>
-          <li><strong>Full:</strong> 3 dadi uguali e una coppia; 25 punti fissi.</li>
-          <li><strong>Piccola scala:</strong> almeno 4 valori consecutivi (9-10-J-Q, 10-J-Q-K oppure J-Q-K-A); 30 punti fissi.</li>
-          <li><strong>Grande scala:</strong> 5 valori consecutivi (9-10-J-Q-K oppure 10-J-Q-K-A); 40 punti fissi.</li>
-          <li><strong>Poker Dice / cinquina:</strong> 5 dadi uguali; 50 punti fissi.</li>
-          <li><strong>Chance:</strong> nessun requisito; somma di tutti e 5 i dadi.</li>
-        </ul>
-
-        <p class="font-semibold text-white">Cinquine successive (jolly)</p>
-        <p>Se la casella Poker Dice contiene già 50 punti, ogni nuova cinquina assegna <strong>100 punti bonus</strong>. Se la casella superiore del valore ottenuto è ancora vuota, la cinquina va obbligatoriamente inserita lì. Se è già compilata, si può scegliere una casella inferiore libera e ottenere il relativo punteggio massimo, anche senza la combinazione richiesta. Se tutte le caselle inferiori sono piene, si deve scegliere una casella superiore vuota e segnare 0.</p>
-
-        <p class="font-semibold text-white">Fine partita</p>
-        <p>La partita termina quando ogni giocatore ha compilato tutte le 13 caselle. Vince chi totalizza più punti, sommando le due sezioni, l'eventuale bonus superiore da 35 e tutti i bonus da 100 punti.</p>
+        
+        <!-- REGOLAMENTO NORMALE -->
+        <div id="normalRulesSection" class="hidden space-y-3">
+          <p class="font-semibold text-emerald-300">Modalità Normale (a punteggio)</p>
+          <p>L'obiettivo è accumulare punti per raggiungere o superare il punteggio target (es. 5000 pt).</p>
+          <p class="font-semibold text-white">Valore delle combinazioni:</p>
+          <ul class="list-disc pl-4 space-y-1">
+            <li><strong>Poker Dice (Cinquina):</strong> 500 pt</li>
+            <li><strong>Poker (4 di un tipo):</strong> 350 pt</li>
+            <li><strong>Full House (Full):</strong> 250 pt</li>
+            <li><strong>Scala (Straight):</strong> 200 pt</li>
+            <li><strong>Tris:</strong> 150 pt</li>
+            <li><strong>Doppia Coppia:</strong> 100 pt</li>
+            <li><strong>Coppia:</strong> 50 pt</li>
+            <li><strong>Carta Alta / Nessuna:</strong> 10 pt</li>
+          </ul>
+          <p class="font-semibold text-white">Svolgimento e lanci:</p>
+          <p>Al proprio turno si hanno fino a <strong>3 lanci</strong>. Dopo il primo lancio, seleziona i dadi che vuoi tenere e che andranno a comporre la tua mano. <strong>Attenzione: i dadi selezionati vengono "fissati" e non possono essere sbloccati nei lanci successivi del turno.</strong></p>
+          <p>Terminati i lanci (o quando decidi di fermarti in anticipo premendo Registra), il sistema valuterà unicamente i dadi che hai selezionato per incrementare il tuo punteggio totale!</p>
         </div>
 
+        <!-- REGOLAMENTO YAHTZEE -->
+        <div id="yahtzeeRulesSection" class="hidden space-y-3">
+          <p class="font-semibold text-white">Preparazione e valori</p>
+          <p>Si usano 5 dadi a sei facce: 9, 10, J, Q, K e A. Per i calcoli valgono rispettivamente <strong>9, 10, 11, 12, 13 e 14 punti</strong>. Ogni giocatore ha una tabella con 13 caselle: 6 superiori e 7 inferiori.</p>
+
+          <p class="font-semibold text-white">Turno e lanci</p>
+          <p>Al proprio turno si lanciano tutti e 5 i dadi. Si hanno fino a <strong>3 lanci complessivi</strong>: dopo ogni lancio si possono bloccare i dadi da conservare e rilanciare gli altri. <strong>Attenzione: i dadi bloccati nel turno restano fissati e non possono essere sbloccati ai lanci successivi.</strong> Ci si può fermare prima. Al termine si deve compilare una casella ancora vuota basandosi sui dadi selezionati; se il risultato non soddisfa la combinazione scelta, in quella casella si segna 0.</p>
+
+          <p class="font-semibold text-amber-300">1. Sezione superiore · valori singoli</p>
+          <p>In ciascuna casella si sommano solo i dadi del valore indicato: 9, 10, J, Q, K oppure A. Gli altri dadi non contano. Se il totale delle sei caselle superiori raggiunge almeno <strong>63 punti</strong>, si aggiungono <strong>35 punti bonus</strong>.</p>
+
+          <p class="font-semibold text-cyan-300">2. Sezione inferiore · combinazioni</p>
+          <ul class="list-disc pl-4 space-y-1">
+            <li><strong>Tris:</strong> almeno 3 dadi uguali; somma di tutti e 5 i dadi.</li>
+            <li><strong>Poker (4 di un tipo):</strong> almeno 4 dadi uguali; somma di tutti e 5 i dadi.</li>
+            <li><strong>Full:</strong> 3 dadi uguali e una coppia; 25 punti fissi.</li>
+            <li><strong>Piccola scala:</strong> almeno 4 valori consecutivi (9-10-J-Q, 10-J-Q-K oppure J-Q-K-A); 30 punti fissi.</li>
+            <li><strong>Grande scala:</strong> 5 valori consecutivi (9-10-J-Q-K oppure 10-J-Q-K-A); 40 punti fissi.</li>
+            <li><strong>Poker Dice / cinquina:</strong> 5 dadi uguali; 50 punti fissi.</li>
+            <li><strong>Chance:</strong> nessun requisito; somma di tutti e 5 i dadi.</li>
+          </ul>
+
+          <p class="font-semibold text-white">Cinquine successive (jolly)</p>
+          <p>Se la casella Poker Dice contiene già 50 punti, ogni nuova cinquina assegna <strong>100 punti bonus</strong>. Se la casella superiore del valore ottenuto è ancora vuota, la cinquina va obbligatoriamente inserita lì. Se è già compilata, si può scegliere una casella inferiore libera e ottenere il relativo punteggio massimo, anche senza la combinazione richiesta. Se tutte le caselle inferiori sono piene, si deve scegliere una casella superiore vuota e segnare 0.</p>
+        </div>
+
+        <!-- REGOLAMENTO SCOMMESSE -->
         <section id="bettingRulesSection" class="hidden space-y-2 border-t border-zinc-700 pt-3">
           <p class="font-semibold text-amber-300">Poker Dice a tavolo scoperto · con puntate</p>
           <p>Da 2 a 6 giocatori. Ogni partecipante inizia con il bankroll scelto al tavolo (predefinito 50 fiches); a inizio mano chi ha fiches versa 1 fiche di ante. Chi non può pagare salta la mano. Il mazziere ruota in senso orario.</p>
@@ -592,7 +621,7 @@
             <li><strong>Carta alta:</strong> cinque valori diversi che non formano una scala.</li>
           </ol>
           <p>I valori sono ordinati 9, 10, J, Q, K, A; non esiste il colore. In caso di parità decide prima il valore della combinazione, poi il kicker (dado spaiato); mani identiche dividono il piatto.</p>
-          <p>Dopo ogni lancio tutti vedono i dadi. Nel secondo e terzo lancio puoi bloccare dadi e rilanciare gli altri; al terzo puoi sbloccare anche dadi tenuti prima. I giocatori con ante effettuata lanciano in ordine partendo dopo il mazziere.</p>
+          <p>Dopo ogni lancio tutti vedono i dadi. Nei lanci successivi puoi bloccare dadi e rilanciare gli altri; <strong>attenzione: i dadi bloccati nel turno restano fissati e non possono essere sbloccati.</strong> I giocatori con ante effettuata lanciano in ordine partendo dopo il mazziere.</p>
           <p><strong>Puntate a limite fisso:</strong> nei primi due giri puntata e rilancio valgono la puntata piccola (predefinita 2); nel giro finale valgono la grande (predefinita 4). Si può fare check solo senza puntate, vedere, rilanciare (massimo 3 rilanci per giro) o foldare. Chi folda perde quanto già messo nel piatto.</p>
           <p>Dopo il terzo giro si confrontano le mani dei giocatori rimasti e il vincitore prende il piatto. In caso di split pot, le fiches indivisibili vanno al vincitore più vicino in senso orario dal mazziere. Chi non può pagare un’ante salta la mano; vince l’ultimo giocatore con fiches.</p>
         </section>
@@ -850,19 +879,19 @@
       playerIds: {},
       playerNames: {},
       scores: {},
-      yahtzeeScorecards: {}, // Per ogni giocatore, memorizza lo stato delle 13 caselle
-      yahtzeeBonuses: {},     // Per i bonus multipli da 100 pt
+      yahtzeeScorecards: {}, 
+      yahtzeeBonuses: {},     
       betState: null,
       round: 1,
       rollsLeft: 3,
       phase: 'ready',
       rollingDice: [],
       dice: [
-        { value: 6, status: 'free' },
-        { value: 6, status: 'free' },
-        { value: 5, status: 'free' },
-        { value: 4, status: 'free' },
-        { value: 3, status: 'free' },
+        { value: 6, status: 'free', locked: false },
+        { value: 6, status: 'free', locked: false },
+        { value: 5, status: 'free', locked: false },
+        { value: 4, status: 'free', locked: false },
+        { value: 3, status: 'free', locked: false },
       ],
       logs: [],
       chatLogs: [],
@@ -1197,6 +1226,7 @@
     const btnBetFold = document.getElementById('btnBetFold');
     const bettingRulesSection = document.getElementById('bettingRulesSection');
     const yahtzeeRulesSection = document.getElementById('yahtzeeRulesSection');
+    const normalRulesSection = document.getElementById('normalRulesSection');
 
     const chatLogContainer = document.getElementById('chatLogContainer');
     const chatForm = document.getElementById('chatForm');
@@ -1383,7 +1413,7 @@
       row.setAttribute('aria-label', `Dadi di ${playerName}`);
       dice.forEach(die => {
         const value = typeof die === 'number' ? die : die.value;
-        const kept = typeof die !== 'number' && die.status === 'selected';
+        const kept = typeof die !== 'number' && (die.status === 'selected' || die.locked);
         const face = document.createElement('span');
         face.className = `betting-die${kept ? ' kept' : ''}`;
         face.dataset.value = String(value);
@@ -1401,7 +1431,7 @@
 
       if (GameState.gameMode === 'yahtzee') {
         if (btnOpenYahtzeeTable) btnOpenYahtzeeTable.classList.add('hidden');
-        if (turnScoreTitleLabel) turnScoreTitleLabel.textContent = "Somma dei 5 dadi";
+        if (turnScoreTitleLabel) turnScoreTitleLabel.textContent = "Somma Dadi Selezionati";
         if (leaderboardButtonLabel) leaderboardButtonLabel.textContent = "Tabella punteggio";
         btnLeaderboard.setAttribute('aria-label', 'Apri tabella punteggio');
         if (leaderboardTitle) leaderboardTitle.textContent = "Tabella punteggio · Yahtzee";
@@ -1475,7 +1505,7 @@
 
       renderLeaderboard();
 
-      const freeDiceCount = GameState.dice.filter(die => die.status === 'free').length;
+      const freeDiceCount = GameState.dice.filter(die => die.status === 'free' && !die.locked).length;
       const remainingRollsLabel = GameState.rollsLeft === 1 ? '1 lancio' : `${GameState.rollsLeft} lanci`;
       if (GameState.gameMode === 'betting' && GameState.betState) {
         const betState = GameState.betState;
@@ -1547,7 +1577,7 @@
       }
 
       const selectedDiceValues = [];
-      GameState.dice.forEach(d => { if (d.status === 'selected') selectedDiceValues.push(d.value); });
+      GameState.dice.forEach(d => { if (d.status === 'selected' || d.locked) selectedDiceValues.push(d.value); });
       
       if (GameState.gameMode === 'normal') {
         const handEval = evaluatePokerHand(selectedDiceValues);
@@ -1558,7 +1588,6 @@
           selectionPillEl.textContent = `Combinazione scelta: ${handEval.name} — ${handEval.desc} (${handEval.score} pt)`;
         }
       } else {
-        const diceValsAll = GameState.dice.map(d => d.value);
         if (GameState.gameMode === 'betting' && GameState.betState) {
           turnScoreTotalEl.textContent = GameState.betState.pot;
           selectionPillEl.textContent = GameState.phase === 'waiting'
@@ -1567,9 +1596,14 @@
               ? `Giro di puntate ${GameState.betState.street} · piatto ${GameState.betState.pot} fiches`
               : `Poker Dice a tavolo scoperto · mano ${GameState.betState.handNumber}`;
         } else {
-          const diceSum = diceValsAll.reduce((sum, value) => sum + DICE_NUMERIC_VALUES[value], 0);
+          // Yahtzee Mode
+          const diceSum = selectedDiceValues.reduce((sum, value) => sum + DICE_NUMERIC_VALUES[value], 0);
           turnScoreTotalEl.textContent = diceSum;
-          selectionPillEl.textContent = `Turno Yahtzee - Clicca "Compila Tabella" per scegliere la casella`;
+          if (selectedDiceValues.length === 0) {
+             selectionPillEl.textContent = `Seleziona i dadi per calcolare la somma provvisoria`;
+          } else {
+             selectionPillEl.textContent = `Somma dadi selezionati: ${diceSum} pt`;
+          }
         }
       }
 
@@ -1577,7 +1611,12 @@
         const container = diceContainers[idx];
         const sub = container.querySelector('.dice-sub');
         container.className = 'dice-container transition-all duration-200';
-        if (d.status === 'selected') {
+        
+        if (d.locked) {
+          container.classList.add('selected', 'locked');
+          sub.textContent = 'Fissato';
+          sub.className = 'dice-sub text-[9px] text-center font-bold text-amber-400 mt-1 uppercase';
+        } else if (d.status === 'selected') {
           container.classList.add('selected');
           sub.textContent = 'Bloccato';
           sub.className = 'dice-sub text-[9px] text-center font-bold text-emerald-400 mt-1 uppercase';
@@ -1585,6 +1624,7 @@
           sub.textContent = 'In gioco';
           sub.className = 'dice-sub text-[9px] text-center font-bold text-zinc-500 mt-1 uppercase';
         }
+        
         applyCubeRotation(cubeElements[idx], d.value);
         const rollingDice = GameState.rollingDice || [];
         cubeElements[idx].classList.toggle('is-rolling', GameState.phase === 'rolling' && rollingDice.includes(idx));
@@ -1655,7 +1695,7 @@
 
     function copyBettingHandToTable(playerId) {
       const hand = getBetState().hands[playerId];
-      GameState.dice = hand.map(die => ({ value: die.value, status: die.status }));
+      GameState.dice = hand.map(die => ({ value: die.value, status: die.status, locked: die.locked || false }));
     }
 
     function persistBettingUpdate(message) {
@@ -1681,7 +1721,7 @@
         GameState.phase = 'waiting';
         GameState.activePlayer = 1;
         GameState.rollsLeft = 0;
-        GameState.dice.forEach(die => { die.status = 'free'; });
+        GameState.dice.forEach(die => { die.status = 'free'; die.locked = false; });
         persistBettingUpdate('In attesa di un secondo giocatore per iniziare la partita con puntate.');
         return;
       }
@@ -1709,7 +1749,7 @@
       fundedPlayers.forEach(playerId => {
         betState.bankrolls[playerId] -= 1;
         betState.pot += 1;
-        betState.hands[playerId] = Array.from({ length: 5 }, () => ({ value: 1, status: 'free' }));
+        betState.hands[playerId] = Array.from({ length: 5 }, () => ({ value: 1, status: 'free', locked: false }));
         betState.contributions[playerId] = 0;
       });
       GameState.round = betState.handNumber;
@@ -1764,7 +1804,7 @@
 
     function finishBettingRoll() {
       const betState = getBetState();
-      betState.hands[GameState.activePlayer] = GameState.dice.map(die => ({ value: die.value, status: die.status }));
+      betState.hands[GameState.activePlayer] = GameState.dice.map(die => ({ value: die.value, status: die.status, locked: die.locked }));
       if (!betState.rolledPlayers.includes(GameState.activePlayer)) {
         betState.rolledPlayers.push(GameState.activePlayer);
       }
@@ -1842,7 +1882,7 @@
           copyBettingHandToTable(GameState.activePlayer);
           GameState.rollsLeft = 1;
           GameState.phase = 'ready';
-          addLog(`Inizia il lancio ${betState.street} di 3. Puoi cambiare anche i dadi bloccati.`, true);
+          addLog(`Inizia il lancio ${betState.street} di 3.`, true);
           persistBettingUpdate(message);
         }
         return;
@@ -2248,7 +2288,6 @@
       const scoreVal = option.score;
       GameState.yahtzeeScorecards[pId][slotKey] = scoreVal;
 
-      // Ricalcola totale giocatore (Sezione superiore + inferiore + bonus)
       let upperSum = 0;
       let lowerSum = 0;
       Object.keys(YAHTZEE_SLOTS_DEF).forEach(k => {
@@ -2268,7 +2307,6 @@
       const msg = `🃏 ${getPlayerName(pId)} compila [${YAHTZEE_SLOTS_DEF[slotKey].name}] con ${scoreVal} pt!`;
       addLog(msg, true);
 
-      // Controllo fine partita 13 turni
       let allFinished = true;
       for (let i = 1; i <= GameState.numPlayers; i++) {
         const card = GameState.yahtzeeScorecards[i] || {};
@@ -2299,10 +2337,13 @@
       const isFirstRoll = GameState.phase === 'ready';
       const indicesToRoll = [];
       GameState.dice.forEach((die, index) => {
-        if (isFirstRoll || die.status === 'free') indicesToRoll.push(index);
+        if (die.status === 'selected') {
+          die.locked = true; 
+        }
+        if (isFirstRoll || (die.status === 'free' && !die.locked)) indicesToRoll.push(index);
       });
       if (indicesToRoll.length === 0) {
-        showQuickToast('Sblocca almeno un dado da rilanciare oppure registra la mano.', '🎲');
+        showQuickToast('Tutti i dadi sono fissati. Registra la mano.', '🎲');
         return;
       }
 
@@ -2346,7 +2387,10 @@
       const isFirstStreet = betState.street === 1;
       const indicesToRoll = [];
       GameState.dice.forEach((die, index) => {
-        if (isFirstStreet || die.status === 'free') indicesToRoll.push(index);
+        if (die.status === 'selected') {
+          die.locked = true;
+        }
+        if (isFirstStreet || (die.status === 'free' && !die.locked)) indicesToRoll.push(index);
       });
       if (!indicesToRoll.length) {
         finishBettingRoll();
@@ -2370,7 +2414,7 @@
           cubeElements[index].classList.remove('is-rolling');
           applyCubeRotation(cubeElements[index], value);
         });
-        betState.hands[GameState.activePlayer] = GameState.dice.map(die => ({ value: die.value, status: die.status }));
+        betState.hands[GameState.activePlayer] = GameState.dice.map(die => ({ value: die.value, status: die.status, locked: die.locked }));
         const values = GameState.dice.map(die => POKER_FACES[die.value]);
         const message = `${getPlayerName(GameState.activePlayer)} lancia ${indicesToRoll.length} dadi: [ ${values.join(', ')} ] · ${evaluateBettingHand(GameState.dice.map(die => die.value)).label}`;
         addLog(message, true);
@@ -2389,7 +2433,7 @@
       }
 
       const selectedDiceValues = [];
-      GameState.dice.forEach(d => { if (d.status === 'selected') selectedDiceValues.push(d.value); });
+      GameState.dice.forEach(d => { if (d.status === 'selected' || d.locked) selectedDiceValues.push(d.value); });
       
       if (selectedDiceValues.length === 0) {
         alert("Seleziona almeno un dado prima di registrare il punteggio!");
@@ -2421,7 +2465,7 @@
         GameState.round++;
       }
       GameState.phase = 'ready';
-      GameState.dice.forEach(d => { d.status = 'free'; });
+      GameState.dice.forEach(d => { d.status = 'free'; d.locked = false; });
       
       updateUI();
       saveStateToCloud(`${getPlayerName(GameState.activePlayer)} è il tuo turno!`);
@@ -2467,22 +2511,28 @@
     }
 
     function onDiceClick(index) {
+      const die = GameState.dice[index];
+      
+      if (die.locked) {
+        showQuickToast("I dadi fissati nel lancio precedente non possono essere sbloccati.", "🔒");
+        return;
+      }
+
       if (GameState.gameMode === 'betting') {
         const betState = getBetState();
         if (!isMyTurn() || GameState.phase !== 'ready' || betState.street === 1) return;
-        const die = GameState.dice[index];
         die.status = die.status === 'selected' ? 'free' : 'selected';
-        betState.hands[GameState.activePlayer] = GameState.dice.map(item => ({ value: item.value, status: item.status }));
+        betState.hands[GameState.activePlayer] = GameState.dice.map(item => ({ value: item.value, status: item.status, locked: item.locked }));
         updateUI();
         saveStateToCloud();
         return;
       }
+
       if (!isMyTurn() || GameState.phase !== 'rolled') return;
-      const d = GameState.dice[index];
 
       sound.playClick();
       triggerHaptic(20);
-      d.status = d.status === 'free' ? 'selected' : 'free';
+      die.status = die.status === 'free' ? 'selected' : 'free';
       updateUI();
       saveStateToCloud();
     }
@@ -2545,8 +2595,8 @@
       GameState.phase = GameState.gameMode === 'betting' ? 'waiting' : 'ready';
       GameState.rollingDice = [];
       GameState.dice = [
-        { value: 6, status: 'free' }, { value: 6, status: 'free' }, { value: 5, status: 'free' },
-        { value: 4, status: 'free' }, { value: 3, status: 'free' },
+        { value: 6, status: 'free', locked: false }, { value: 6, status: 'free', locked: false }, { value: 5, status: 'free', locked: false },
+        { value: 4, status: 'free', locked: false }, { value: 3, status: 'free', locked: false },
       ];
       GameState.logs = [];
       if (GameState.gameMode === 'betting') {
@@ -2579,6 +2629,7 @@
       const betState = gameMode === 'betting'
         ? createBetState({ 1: settings.startingChips }, settings)
         : null;
+      const initialScore = gameMode === 'betting' ? settings.startingChips : 0;
       Object.assign(GameState, {
         gameMode,
         targetScore,
@@ -2586,7 +2637,7 @@
         activePlayer: 1,
         playerIds: { 1: myPlayerId },
         playerNames: { 1: name },
-        scores: { 1: 0 },
+        scores: { 1: initialScore },
         yahtzeeScorecards: { 1: {} },
         yahtzeeBonuses: { 1: 0 },
         betState,
@@ -2595,8 +2646,8 @@
         phase: gameMode === 'betting' ? 'waiting' : 'ready',
         rollingDice: [],
         dice: [
-          { value: 6, status: 'free' }, { value: 5, status: 'free' }, { value: 4, status: 'free' },
-          { value: 3, status: 'free' }, { value: 2, status: 'free' },
+          { value: 6, status: 'free', locked: false }, { value: 5, status: 'free', locked: false }, { value: 4, status: 'free', locked: false },
+          { value: 3, status: 'free', locked: false }, { value: 2, status: 'free', locked: false },
         ],
         logs: [{ text: `Tavolo Poker Dice pronto (${gameMode === 'yahtzee' ? 'Stile Yahtzee' : gameMode === 'betting' ? 'Con puntate' : 'Normale'}). Buon divertimento!`, highlight: false }],
         chatLogs: [],
@@ -2618,6 +2669,7 @@
           TARGET_SCORE = tScore;
           const { error } = await supabaseClient.from('rooms').insert([{ code: roomCode, state: GameState }]);
           if (error) throw error;
+          showQuickToast(`Nuovo tavolo creato: ${roomCode}`, "✨");
         } else {
           if (!data.state) throw new Error("Stato stanza non valido.");
           Object.assign(GameState, data.state);
@@ -2629,6 +2681,7 @@
             );
             GameState.phase = 'waiting';
           }
+          if (!isPageReload) showQuickToast(`Ti sei unito al tavolo esistente: ${roomCode}`, "🚪");
           
           let existingPlayerIndex = -1;
           for (let i = 1; i <= GameState.numPlayers; i++) {
@@ -2642,7 +2695,10 @@
             GameState.numPlayers++;
             GameState.playerIds[GameState.numPlayers] = myPlayerId;
             GameState.playerNames[GameState.numPlayers] = name;
-            GameState.scores[GameState.numPlayers] = 0;
+            
+            const initialScore = GameState.gameMode === 'betting' ? GameState.betState.startingChips : 0;
+            GameState.scores[GameState.numPlayers] = initialScore;
+            
             if (!GameState.yahtzeeScorecards) GameState.yahtzeeScorecards = {};
             GameState.yahtzeeScorecards[GameState.numPlayers] = {};
             if (!GameState.yahtzeeBonuses) GameState.yahtzeeBonuses = {};
@@ -2817,11 +2873,13 @@
         leaderboardModal.classList.remove('hidden');
       });
       btnCloseLeaderboard.addEventListener('click', () => leaderboardModal.classList.add('hidden'));
+      
       btnRules.addEventListener('click', () => {
         triggerHaptic(20);
-        const showBettingRules = GameState.gameMode === 'betting' || (!roomCode && selectedGameMode === 'betting');
-        bettingRulesSection.classList.toggle('hidden', !showBettingRules);
-        yahtzeeRulesSection.classList.toggle('hidden', showBettingRules);
+        const showMode = roomCode ? GameState.gameMode : selectedGameMode;
+        bettingRulesSection.classList.toggle('hidden', showMode !== 'betting');
+        yahtzeeRulesSection.classList.toggle('hidden', showMode !== 'yahtzee');
+        normalRulesSection.classList.toggle('hidden', showMode !== 'normal');
         rulesModal.classList.remove('hidden');
       });
       btnCloseRules.addEventListener('click', () => rulesModal.classList.add('hidden'));
