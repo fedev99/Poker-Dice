@@ -277,7 +277,10 @@
           <h3 id="bettingModalTitle" class="text-base font-black text-amber-300 font-display">Puntata</h3>
           <p id="bettingModalSubtitle" class="text-[11px] text-zinc-400"></p>
         </div>
-        <span id="bettingPotDisplay" class="rounded-xl bg-amber-500/10 px-3 py-2 text-xs font-black text-amber-300">Piatto: 0</span>
+        <div class="flex items-center gap-2">
+          <span id="bettingPotDisplay" class="rounded-xl bg-amber-500/10 px-3 py-2 text-xs font-black text-amber-300">Piatto: 0</span>
+          <button id="btnCloseBettingModal" class="text-zinc-400 hover:text-white p-1 rounded-lg bg-zinc-800/80 transition"><i data-lucide="x" class="w-4 h-4"></i></button>
+        </div>
       </div>
       <div class="grid grid-cols-2 gap-2 py-3 text-xs">
         <div class="rounded-lg bg-zinc-950 p-2"><span class="text-zinc-500">La tua mano</span><strong id="bettingHandDisplay" class="block text-white"></strong></div>
@@ -581,7 +584,7 @@
       <div class="flex items-center justify-between pb-2 border-b border-zinc-800">
         <div class="flex items-center gap-2">
           <i data-lucide="book-open" class="w-5 h-5 text-purple-300"></i>
-          <h3 class="text-base font-bold text-purple-300 font-display">Regolamento Poker Dice</h3>
+          <h3 class="text-base font-bold text-purple-300 font-display">Regole</h3>
         </div>
         <button id="btnCloseRules" class="text-zinc-400 hover:text-white"><i data-lucide="x" class="w-5 h-5"></i></button>
       </div>
@@ -609,6 +612,7 @@
 
         <!-- REGOLAMENTO YAHTZEE -->
         <div id="yahtzeeRulesSection" class="hidden space-y-3">
+           <p class="font-semibold text-emerald-300">Modalità stile Yahtzee</p>
           <p class="font-semibold text-white">Preparazione e valori</p>
           <p>Si usano 5 dadi a sei facce: 9, 10, J, Q, K e A. Per i calcoli valgono rispettivamente <strong>9, 10, 11, 12, 13 e 14 punti</strong>. Ogni giocatore ha una tabella con 13 caselle: 6 superiori e 7 inferiori.</p>
 
@@ -1253,6 +1257,7 @@
     const btnBetCall = document.getElementById('btnBetCall');
     const btnBetRaise = document.getElementById('btnBetRaise');
     const btnBetFold = document.getElementById('btnBetFold');
+    const btnCloseBettingModal = document.getElementById('btnCloseBettingModal');
     
     const bettingRulesSection = document.getElementById('bettingRulesSection');
     const yahtzeeRulesSection = document.getElementById('yahtzeeRulesSection');
@@ -1305,9 +1310,14 @@
           return;
         }
         roomCheckTimeout = setTimeout(async () => {
-          const { data } = await supabaseClient.from('rooms').select('code').eq('code', code).maybeSingle();
+          const { data } = await supabaseClient.from('rooms').select('code, state').eq('code', code).maybeSingle();
           if (data) {
-            roomCodeHint.textContent = "Stanza esistente: ti unirai al tavolo.";
+            let modeLabel = "Normale";
+            if (data.state && data.state.gameMode) {
+              if (data.state.gameMode === 'yahtzee') modeLabel = "Stile Yahtzee";
+              else if (data.state.gameMode === 'betting') modeLabel = "Con puntate";
+            }
+            roomCodeHint.textContent = `Stanza esistente (Modalità: ${modeLabel}): ti unirai al tavolo.`;
             roomCodeHint.classList.remove('hidden', 'text-amber-400');
             roomCodeHint.classList.add('text-emerald-400');
           } else {
@@ -1649,12 +1659,20 @@
           btnRollText.textContent = "Mescolando...";
           btnBank.disabled = true;
           btnBank.classList.add('opacity-40', 'cursor-not-allowed');
-        } else if (GameState.phase === 'betting' || GameState.phase === 'waiting' || GameState.phase === 'finished') {
+        } else if (GameState.phase === 'betting' || GameState.phase === 'waiting' || GameState.phase === 'finished' || GameState.phase === 'transition') {
           btnRoll.disabled = true;
           btnRoll.classList.add('opacity-50', 'cursor-not-allowed');
-          btnRollText.textContent = GameState.phase === 'betting' ? 'Puntate in corso' : 'In attesa';
-          btnBank.disabled = true;
-          btnBank.classList.add('opacity-40', 'cursor-not-allowed');
+          btnRollText.textContent = GameState.phase === 'betting' ? 'Puntate in corso' : GameState.phase === 'transition' ? 'Attendere...' : 'In attesa';
+
+          if (GameState.phase === 'betting' && GameState.gameMode === 'betting' && turnAllowed) {
+            btnBank.disabled = false;
+            btnBank.classList.remove('opacity-40', 'cursor-not-allowed');
+            btnBankText.textContent = "Fai Puntata";
+          } else {
+            btnBank.disabled = true;
+            btnBank.classList.add('opacity-40', 'cursor-not-allowed');
+            btnBankText.textContent = GameState.gameMode === 'yahtzee' ? "Registra mano" : "Registra Mano";
+          }
         } else if (GameState.phase === 'rolled') {
           btnBank.disabled = false;
           btnBank.classList.remove('opacity-40', 'cursor-not-allowed');
@@ -1732,7 +1750,9 @@
           ? 'In attesa che si unisca un secondo giocatore.'
           : GameState.phase === 'betting'
             ? (turnAllowed ? 'È il tuo turno di puntare.' : `Turno di puntata: ${getPlayerName(GameState.activePlayer)}`)
-            : (turnAllowed ? 'Scegli quali dadi tenere e lancia.' : `Turno di lancio: ${getPlayerName(GameState.activePlayer)}`);
+            : GameState.phase === 'transition'
+              ? 'Aggiornamento tavolo...'
+              : (turnAllowed ? 'Scegli quali dadi tenere e lancia.' : `Turno di lancio: ${getPlayerName(GameState.activePlayer)}`);
       } else {
         statusMessageEl.textContent = turnAllowed ? "Scegli quali dadi bloccare e rilancia gli altri!" : `Turno di ${getPlayerName(GameState.activePlayer)}`;
       }
@@ -1912,6 +1932,7 @@
     }
 
     function performBettingAction(action) {
+      bettingActionModal.classList.add('hidden');
       const betState = getBetState();
       if (GameState.gameMode !== 'betting' || GameState.phase !== 'betting' || !isMyTurn()) return;
       const playerId = GameState.activePlayer;
@@ -2035,8 +2056,11 @@
 
     function renderBettingActionModal() {
       const isBettingAction = GameState.gameMode === 'betting' && GameState.phase === 'betting' && GameState.betState && isMyTurn();
-      bettingActionModal.classList.toggle('hidden', !isBettingAction);
-      if (!isBettingAction) return;
+      
+      if (!isBettingAction) {
+        bettingActionModal.classList.add('hidden');
+        return;
+      }
 
       const betState = getBetState();
       const playerId = GameState.activePlayer;
@@ -2069,6 +2093,12 @@
       [btnBetCheck, btnBetOpen, btnBetCall, btnBetRaise].forEach(button => {
         button.classList.toggle('opacity-40', button.disabled);
         button.classList.toggle('cursor-not-allowed', button.disabled);
+      });
+    }
+
+    if (btnCloseBettingModal) {
+      btnCloseBettingModal.addEventListener('click', () => {
+        bettingActionModal.classList.add('hidden');
       });
     }
 
@@ -2514,9 +2544,17 @@
         const values = GameState.dice.map(die => POKER_FACES[die.value]);
         const message = `${getPlayerName(GameState.activePlayer)} lancia ${indicesToRoll.length} dadi: [ ${values.join(', ')} ] · ${evaluateBettingHand(GameState.dice.map(die => die.value)).label}`;
         addLog(message, true);
-        GameState.rollsLeft = 0;
-        GameState.rollingDice = [];
-        finishBettingRoll();
+        
+        // Fase di transizione per permettere al tavolo di vedere i dadi prima del prossimo giocatore
+        GameState.phase = 'transition';
+        updateUI();
+        saveStateToCloud(message);
+
+        setTimeout(() => {
+          GameState.rollsLeft = 0;
+          GameState.rollingDice = [];
+          finishBettingRoll();
+        }, 1500); // 1.5s delay aggiunto per visualizzare i dadi aggiornati
       }, 700);
     }
 
@@ -2943,7 +2981,18 @@
       }
 
       btnRoll.addEventListener('click', () => { if (isMyTurn()) triggerHaptic(20); sound.init(); rollDice(); });
-      btnBank.addEventListener('click', () => { if (isMyTurn()) triggerHaptic(20); bankPoints(); });
+      
+      btnBank.addEventListener('click', () => { 
+        if (isMyTurn()) {
+          triggerHaptic(20); 
+          if (GameState.gameMode === 'betting' && GameState.phase === 'betting') {
+            bettingActionModal.classList.remove('hidden');
+          } else {
+            bankPoints(); 
+          }
+        }
+      });
+      
       btnBetCheck.addEventListener('click', () => performBettingAction('check'));
       btnBetOpen.addEventListener('click', () => performBettingAction('bet'));
       btnBetCall.addEventListener('click', () => performBettingAction('call'));
