@@ -299,6 +299,26 @@
     </div>
   </div>
 
+  <!-- MODALE MODIFICA NOME SINGOLO GIOCATORE -->
+  <div id="editMyNameModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-zinc-900 border border-zinc-700 rounded-2xl p-5 max-w-sm w-full text-center">
+      <div class="flex items-center gap-2 mb-2 text-emerald-400 justify-center">
+        <i data-lucide="user-pen" class="w-5 h-5"></i>
+        <h3 class="text-base font-bold text-emerald-300 font-display">Modifica Nome</h3>
+      </div>
+      <p class="text-xs text-zinc-400 mb-4">Inserisci il nuovo nome per questo giocatore:</p>
+      
+      <div class="text-left mb-4">
+        <input id="inputChangeMyName" type="text" maxlength="12" class="w-full bg-zinc-950 border border-emerald-500/60 rounded-xl px-3 py-2 text-emerald-300 font-semibold text-sm focus:outline-none focus:border-emerald-400" />
+      </div>
+      
+      <div class="flex gap-2">
+        <button id="btnCancelMyName" class="flex-1 py-2.5 rounded-xl bg-zinc-800 text-zinc-300 font-bold text-xs">Annulla</button>
+        <button id="btnConfirmMyName" class="flex-1 py-2.5 rounded-xl bg-emerald-500 text-zinc-950 font-bold text-xs hover:bg-emerald-400">Salva</button>
+      </div>
+    </div>
+  </div>
+
   <!-- MODALE MODIFICA GIOCATORI -->
   <div id="editPlayersModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
     <div class="bg-zinc-900 border border-zinc-700 rounded-2xl p-5 max-w-sm w-full text-center">
@@ -396,7 +416,7 @@
             <span class="text-zinc-300">Punteggio totale</span>
             <span id="yahtzeeGrandTotal" class="text-emerald-400 font-display">0 pt</span>
           </div>
-        </div>
+        </section>
       </div>
     </div>
   </div>
@@ -1228,6 +1248,11 @@
     const btnCancelEditPlayers = document.getElementById('btnCancelEditPlayers');
     const btnConfirmEditPlayers = document.getElementById('btnConfirmEditPlayers');
 
+    const editMyNameModal = document.getElementById('editMyNameModal');
+    const inputChangeMyName = document.getElementById('inputChangeMyName');
+    const btnCancelMyName = document.getElementById('btnCancelMyName');
+    const btnConfirmMyName = document.getElementById('btnConfirmMyName');
+
     const btnOpenYahtzeeTable = document.getElementById('btnOpenYahtzeeTable');
     const yahtzeeScorecardModal = document.getElementById('yahtzeeScorecardModal');
     const btnCloseYahtzeeModal = document.getElementById('btnCloseYahtzeeModal');
@@ -1371,6 +1396,41 @@
       editPlayersModal.classList.remove('hidden');
     }
 
+    function openEditMyNameModal(playerIndex) {
+      const currentName = getPlayerName(playerIndex);
+      inputChangeMyName.value = currentName;
+      inputChangeMyName.dataset.playerIndex = playerIndex;
+      editMyNameModal.classList.remove('hidden');
+      setTimeout(() => inputChangeMyName.focus(), 100);
+    }
+
+    if (btnCancelMyName) {
+      btnCancelMyName.addEventListener('click', () => {
+        editMyNameModal.classList.add('hidden');
+      });
+    }
+
+    if (btnConfirmMyName) {
+      btnConfirmMyName.addEventListener('click', () => {
+        triggerHaptic(20);
+        const newName = inputChangeMyName.value.trim();
+        const pIdx = parseInt(inputChangeMyName.dataset.playerIndex);
+        if (newName && pIdx) {
+          GameState.playerNames[pIdx] = newName;
+          if (GameState.playerIds[pIdx] === myPlayerId) {
+            setCookie("poker_dice_player_name", newName);
+            localStorage.setItem("poker_dice_player_name", newName);
+          }
+          editMyNameModal.classList.add('hidden');
+          initScoreboard();
+          updateUI();
+          saveStateToCloud(`Nome aggiornato: ${newName}`);
+        } else {
+          showQuickToast("Inserisci un nome valido.", "⚠️");
+        }
+      });
+    }
+
     function openNewGameModal() {
       playerSelectList.innerHTML = '';
       for (let i = 1; i <= GameState.numPlayers; i++) {
@@ -1477,6 +1537,9 @@
         card.innerHTML = `
           <div class="flex items-center justify-between">
             <span class="text-[10px] font-bold uppercase tracking-wider text-left truncate max-w-[95px]" id="labelP${i}"></span>
+            <button type="button" data-edit-player="${i}" class="text-zinc-400 hover:text-emerald-400 p-0.5 rounded transition" title="Modifica nome">
+              <i data-lucide="pencil" class="w-3 h-3"></i>
+            </button>
           </div>
           <div class="flex items-baseline justify-between mt-1">
             <span class="text-lg sm:text-xl font-extrabold text-white font-display" id="scoreP${i}">0</span>
@@ -1489,6 +1552,16 @@
         `;
         playersContainer.appendChild(card);
       }
+
+      // Collega eventi pulsante modifica nome per ogni scheda
+      playersContainer.querySelectorAll('[data-edit-player]').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const pIdx = parseInt(btn.getAttribute('data-edit-player'));
+          triggerHaptic(20);
+          openEditMyNameModal(pIdx);
+        });
+      });
     }
 
     const faceRotations = {
@@ -2937,12 +3010,8 @@
       roomBadge.addEventListener('click', () => {
         if (!roomCode) return;
         triggerHaptic(20);
-      if (GameState.gameMode === 'betting') {
-        showQuickToast("Non è possibile modificare i giocatori nella partita a fiches.", "⚠️");
-        return;
-      }
-      openEditPlayersModal();
-    });
+        openEditPlayersModal();
+      });
     }
 
     if (btnCancelEditPlayers) btnCancelEditPlayers.addEventListener('click', () => editPlayersModal.classList.add('hidden'));
