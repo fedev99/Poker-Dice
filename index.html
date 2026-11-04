@@ -584,7 +584,7 @@
       <div class="flex items-center justify-between pb-2 border-b border-zinc-800">
         <div class="flex items-center gap-2">
           <i data-lucide="book-open" class="w-5 h-5 text-purple-300"></i>
-          <h3 class="text-base font-bold text-purple-300 font-display">Regole</h3>
+          <h3 class="text-base font-bold text-purple-300 font-display">Regolamento Poker Dice</h3>
         </div>
         <button id="btnCloseRules" class="text-zinc-400 hover:text-white"><i data-lucide="x" class="w-5 h-5"></i></button>
       </div>
@@ -612,7 +612,6 @@
 
         <!-- REGOLAMENTO YAHTZEE -->
         <div id="yahtzeeRulesSection" class="hidden space-y-3">
-           <p class="font-semibold text-emerald-300">Modalità stile Yahtzee</p>
           <p class="font-semibold text-white">Preparazione e valori</p>
           <p>Si usano 5 dadi a sei facce: 9, 10, J, Q, K e A. Per i calcoli valgono rispettivamente <strong>9, 10, 11, 12, 13 e 14 punti</strong>. Ogni giocatore ha una tabella con 13 caselle: 6 superiori e 7 inferiori.</p>
 
@@ -1690,8 +1689,25 @@
         }
       }
 
+      // Determinare quali dadi mostrare sul tavolo principale (per evitare confusione nella modalità puntate)
+      let diceToRender = GameState.dice;
+      if (GameState.gameMode === 'betting' && GameState.betState) {
+        let myLocalPlayerId = null;
+        for (let i = 1; i <= GameState.numPlayers; i++) {
+          if (GameState.playerIds[i] === myPlayerId) {
+            myLocalPlayerId = i; 
+            break;
+          }
+        }
+        if (myLocalPlayerId && GameState.betState.hands[myLocalPlayerId]) {
+          if (!isMyTurn()) {
+            diceToRender = GameState.betState.hands[myLocalPlayerId];
+          }
+        }
+      }
+
       const selectedDiceValues = [];
-      GameState.dice.forEach(d => { if (d.status === 'selected' || d.locked) selectedDiceValues.push(d.value); });
+      diceToRender.forEach(d => { if (d.status === 'selected' || d.locked) selectedDiceValues.push(d.value); });
       
       if (GameState.gameMode === 'normal') {
         const handEval = evaluatePokerHand(selectedDiceValues);
@@ -1721,7 +1737,7 @@
         }
       }
 
-      GameState.dice.forEach((d, idx) => {
+      diceToRender.forEach((d, idx) => {
         const container = diceContainers[idx];
         const sub = container.querySelector('.dice-sub');
         container.className = 'dice-container transition-all duration-200';
@@ -1741,7 +1757,8 @@
         
         applyCubeRotation(cubeElements[idx], d.value);
         const rollingDice = GameState.rollingDice || [];
-        cubeElements[idx].classList.toggle('is-rolling', GameState.phase === 'rolling' && rollingDice.includes(idx));
+        const isRolling = GameState.phase === 'rolling' && rollingDice.includes(idx) && diceToRender === GameState.dice;
+        cubeElements[idx].classList.toggle('is-rolling', isRolling);
       });
 
       roundCounterEl.textContent = `Round ${GameState.round} • ${getPlayerName(GameState.activePlayer)}`;
